@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Requisitions — NEO TECH Solutions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  /* ===== Root Variables ===== */
+  :root {
+    --bg:#f6f7f8;
+    --card:#ffffff;
+    --text:#22303b;
+    --muted:#6f7b83;
+    --darkgreen:#00533f;
+    --lightgreen:#8fd694;
+    --yellow:#ffcc00;
+    --red:#ff6347;
+    --radius:12px;
+    --shadow:0 6px 20px rgba(0,0,0,0.06);
+    --transition: all 0.3s ease;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);}
+
+  /* ===== Top Navigation ===== */
+  .topbar{
+    background: var(--darkgreen);
+    color:#fff;
+    position:sticky; top:0; z-index:10;
+    box-shadow:0 4px 14px rgba(0,0,0,0.1);
+  }
+  .topbar-inner{
+    max-width:1400px;
+    margin:auto;
+    padding:14px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand img{width:40px;border-radius:6px;}
+  .brand span{font-size:1.2rem;font-weight:700;}
+  .main-nav{display:flex;gap:20px;}
+  .nav-link{
+    color:#fff;text-decoration:none;font-weight:500;position:relative;
+    transition:var(--transition);padding:6px 0;
+  }
+  .nav-link::after{
+    content:"";position:absolute;left:0;bottom:-3px;width:0;height:2px;
+    background:var(--yellow);border-radius:2px;transition:var(--transition);
+  }
+  .nav-link:hover::after, .nav-link.active::after{width:100%;}
+  .nav-link:hover{opacity:0.9;}
+  .avatar{
+    width:38px;height:38px;background:rgba(255,255,255,0.15);
+    display:flex; align-items:center; justify-content:center;
+    border-radius:8px;font-weight:700;cursor:pointer;
+    transition:var(--transition);
+  }
+  .avatar:hover{background:rgba(255,255,255,0.25);}
+
+  /* ===== Container ===== */
+  .container{max-width:1400px;margin:28px auto;padding:0 20px}
+
+  /* ===== Quick Actions ===== */
+  .quick-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+  .btn{
+    background:#fff;border:1px solid var(--darkgreen);
+    color:var(--darkgreen);padding:10px 16px;border-radius:8px;font-weight:600;
+    cursor:pointer; transition:var(--transition);
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .btn:hover{background:var(--darkgreen); color:#fff;transform: translateY(-2px);}
+  .btn.primary{background:var(--darkgreen);color:#fff;border:none;}
+  .btn.small{padding:6px 10px;font-size:13px;}
+  .btn.tiny{padding:5px 8px;font-size:12px;}
+  .btn.ghost{background:transparent;border:1px solid #ccc;color:var(--text);}
+  .btn.danger{background:var(--red);color:#fff;border:none;}
+  .btn.success{background:#28a745;color:#fff;border:none;}
+
+  /* ===== Panel Tables ===== */
+  .panel{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:20px;
+    margin-bottom:26px;
+  }
+  .panel-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+  }
+  .panel-head h3{
+    margin:0;
+    font-size:18px;
+    font-weight:700;
+    color:var(--darkgreen);
+  }
+  .table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .table th, .table td{
+    padding:12px;
+    text-align:left;
+  }
+  .table th{
+    background: var(--darkgreen);
+    color: #fff;
+    font-weight:600;
+    text-transform: uppercase;
+  }
+  .table tbody tr:nth-child(even){
+    background: #f0fdf7;
+  }
+  .table tbody tr:hover{
+    background: var(--lightgreen);
+    transition: var(--transition);
+  }
+  .text-right{text-align:right}
+  .search-box{
+    padding:8px 12px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    width:250px;
+  }
+
+  /* ===== Status Pills ===== */
+  .pill{
+    display:inline-block;
+    padding:5px 10px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:600;
+  }
+  .pill.received{background:#e2f7f0;color:var(--darkgreen);}
+  .pill.in-process{background:var(--yellow); color:#22303b;}
+  .pill.fulfilled{background:var(--lightgreen); color:#22303b;}
+  .pill.cancelled{background:var(--red);color:#fff;}
+
+  /* ===== Overlay/Modal ===== */
+  .overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px);
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+  .overlay.active {
+    display: flex;
+  }
+  .overlay-content {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 30px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    animation: slideDown 0.3s ease-out;
+  }
+  @keyframes slideDown {
+    from {transform: translateY(-30px); opacity:0;}
+    to {transform: translateY(0); opacity:1;}
+  }
+  .overlay h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: var(--darkgreen);
+    text-align: center;
+  }
+  .form-group {margin-bottom: 15px;}
+  .form-group label {display:block; font-weight:600; margin-bottom:5px; color:var(--text);}
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: var(--transition);
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--darkgreen);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 83, 63, 0.2);
+  }
+  .form-buttons {display:flex; justify-content:flex-end; gap:10px; margin-top:20px;}
+
+  /* ===== Profile Dropdown ===== */
+  .profile-dropdown{
+    position:absolute;
+    top:60px;
+    right:20px;
+    width:220px;
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    display:none;
+    flex-direction:column;
+    padding:12px;
+    z-index:100;
+  }
+  .profile-header{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+    padding-bottom:12px;
+    border-bottom:1px solid #eee;
+  }
+  .profile-header img{
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid var(--darkgreen);
+  }
+  .profile-header strong{
+    font-size:14px;
+    color:var(--darkgreen);
+  }
+  .profile-header div{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .profile-actions .btn{
+    width:100%;
+    margin-bottom:6px;
+    font-size:13px;
+    justify-content:center;
+  }
+
+  /* ===== Requisition Details Modal ===== */
+  .requisition-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    overflow-y: auto;
+  }
+  .requisition-modal.active {
+    display: block;
+  }
+  .modal-container {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 30px;
+    width: 90%;
+    max-width: 800px;
+    margin: 40px auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    position: relative;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+  }
+  .modal-title {
+    color: var(--darkgreen);
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .close-modal {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .close-modal:hover {
+    color: var(--red);
+  }
+  .section-card {
+    background: #f9fbf9;
+    border: 1px solid #e0f0e9;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    padding: 20px;
+  }
+  .section-header {
+    background: linear-gradient(to right, var(--darkgreen), var(--lightgreen));
+    color: white;
+    padding: 8px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+  }
+  .info-item {
+    display: flex;
+    flex-direction: column;
+  }
+  .info-label {
+    font-weight: 600;
+    color: var(--darkgreen);
+    margin-bottom: 5px;
+    font-size: 14px;
+  }
+  .info-value {
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+  }
+  .info-value.editing {
+    border-color: var(--darkgreen);
+    box-shadow: 0 0 0 2px rgba(0, 83, 63, 0.2);
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  /* ===== Status Update Modal ===== */
+  .status-update-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    justify-content: center;
+    align-items: center;
+  }
+  .status-update-modal.active {
+    display: flex;
+  }
+  .status-update-content {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 30px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  }
+
+  /* ===== Responsive ===== */
+  @media(max-width:768px){
+    .main-nav{display:none}
+    .quick-actions{flex-direction:column}
+    .btn{width:100%}
+    .info-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <img src="./company_logo.jpg" alt="Logo">
+      <span>NEO TECH Solutions</span>
+    </div>
+    <nav class="main-nav">
+      <a href="./dashaboard.html" class="nav-link" data-page="dashboard">Dashboard</a>
+      <a href="./employee.html" class="nav-link" data-page="employees">Employees</a>
+      <a href="./requsition.html" class="nav-link active" data-page="requisitions">Requisitions</a>
+      <a href="./company_profile.html" class="nav-link" data-page="company">Company Profile</a>
+      <a href="./profile.html" class="nav-link" data-page="profile">My Profile</a>
+    </nav>
+    <div class="avatar" id="user-avatar"></div>
+  </div>
+</header>
+
+<!-- Profile Dropdown -->
+<div class="profile-dropdown" id="profile-dropdown">
+  <div class="profile-header">
+    <img src="https://picsum.photos/seed/profile/50/50.jpg" alt="Profile Image" id="profile-img">
+    <div>
+      <strong id="profile-name">User</strong>
+      <div id="profile-role">Role</div>
+    </div>
+  </div>
+  <div class="profile-actions">
+    <button class="btn small primary" id="edit-profile-btn">Edit Profile</button>
+    <button class="btn small ghost" id="logout-btn">Logout</button>
+  </div>
+</div>
+
+<main class="container">
+
+  <!-- Quick Actions -->
+  <section class="quick-actions" id="quick-actions">
+    <!-- dynamically populated based on role -->
+  </section>
+
+  <!-- Requisitions Table -->
+  <section class="panel">
+    <div class="panel-head">
+      <h3>Job Requisitions</h3>
+      <div>
+        <input type="text" id="requisition-search" class="search-box" placeholder="Search requisitions...">
+        <select id="status-filter" class="search-box">
+          <option value="">All Status</option>
+          <option value="Received">Received</option>
+          <option value="In-Process">In-Process</option>
+          <option value="Fulfilled">Fulfilled</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+    <table class="table" id="requisitions-table">
+      <thead>
+        <tr>
+          <th>Job Title</th>
+          <th>Department</th>
+          <th>Submitted By</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+</main>
+
+
+  <!-- Add Requisition Modal -->
+<div id="addRequisitionModal" class="overlay">
+  <div class="overlay-content">
+    <h3>Post Job Requisition</h3>
+    <form id="addRequisitionForm">
+      <div class="form-group">
+        <label for="requisitionTitle">Job Title</label>
+        <input type="text" id="requisitionTitle" required placeholder="Enter job title">
+      </div>
+      <div class="form-group">
+        <label for="requisitionDescription">Job Description</label>
+        <textarea id="requisitionDescription" rows="4" placeholder="Enter job description"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="requisitionDepartment">Department</label>
+        <input type="text" id="requisitionDepartment" required placeholder="Enter department">
+      </div>
+      <div class="form-group">
+        <label for="requisitionStatus">Status</label>
+        <select id="requisitionStatus" required>
+          <!-- FIX: Update these values to match backend -->
+          <option value="pending">Received</option>
+          <option value="approved">Fulfilled</option>
+          <option value="rejected">Cancelled</option>
+        </select>
+      </div>
+      
+      <!-- ADD THESE NEW FIELDS -->
+      <div class="form-group">
+        <label for="requisitionLocation">Location</label>
+        <input type="text" id="requisitionLocation" placeholder="Enter location">
+      </div>
+      <div class="form-group">
+        <label for="requisitionJobType">Job Type</label>
+        <select id="requisitionJobType">
+          <option value="full_time">Full Time</option>
+          <option value="part_time">Part Time</option>
+          <option value="contract">Contract</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="requisitionVacancies">Vacancies</label>
+        <input type="number" id="requisitionVacancies" value="1" min="1">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="requisitionMinExp">Min Experience (years)</label>
+          <input type="number" id="requisitionMinExp" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label for="requisitionMaxExp">Max Experience (years)</label>
+          <input type="number" id="requisitionMaxExp" value="5" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="requisitionMinSalary">Min Salary</label>
+          <input type="number" id="requisitionMinSalary" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label for="requisitionMaxSalary">Max Salary</label>
+          <input type="number" id="requisitionMaxSalary" value="100000" min="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="requisitionRequirements">Requirements</label>
+        <textarea id="requisitionRequirements" rows="3" placeholder="Enter job requirements"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="requisitionSkills">Skills Required</label>
+        <input type="text" id="requisitionSkills" placeholder="Enter required skills">
+      </div>
+      
+      <div class="form-buttons">
+        <button type="submit" class="btn primary">Post Requisition</button>
+        <button type="button" class="btn ghost" id="cancelAddRequisition">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Status Update Modal -->
+<div id="statusUpdateModal" class="status-update-modal">
+  <div class="status-update-content">
+    <h3>Update Requisition Status</h3>
+    <form id="statusUpdateForm">
+      <div class="form-group">
+        <label for="newStatus">New Status</label>
+        <select id="newStatus" required>
+          <option value="Received">Received</option>
+          <option value="In-Process">In-Process</option>
+          <option value="Fulfilled">Fulfilled</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="form-buttons">
+        <button type="submit" class="btn primary">Update Status</button>
+        <button type="button" class="btn ghost" id="cancelStatusUpdate">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Requisition Details Modal -->
+<div id="requisitionDetailsModal" class="requisition-modal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2 class="modal-title">Requisition Details</h2>
+      <button class="close-modal" id="closeRequisitionModal">&times;</button>
+    </div>
+
+    <!-- Requisition Information -->
+    <div class="section-card">
+      <h3 class="section-header">Requisition Information</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Job Title</div>
+          <div class="info-value" id="detail-title"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Department</div>
+          <div class="info-value" id="detail-department"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Submitted By</div>
+          <div class="info-value" id="detail-submittedBy"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Date</div>
+          <div class="info-value" id="detail-date"></div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Status</div>
+          <div class="info-value" id="detail-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Job Description -->
+    <div class="section-card">
+      <h3 class="section-header">Job Description</h3>
+      <div class="info-value" id="detail-description" style="min-height: 100px;"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn primary" id="edit-requisition-btn">Edit</button>
+      <button class="btn success" id="save-requisition-btn" style="display:none;">Save</button>
+      <button class="btn ghost" id="cancel-edit-btn" style="display:none;">Cancel</button>
+      <button class="btn danger" id="delete-requisition-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentUser = {};
+let requisitions = [];
+let selectedRequisitionIndex = -1;
+let authToken = '';
+
+document.addEventListener('DOMContentLoaded', function() {
+  authToken = sessionStorage.getItem('authToken');
+  const userStr = sessionStorage.getItem('currentUser');
+  
+  if (!userStr || !authToken) {
+    window.location.href = 'login.html';
+    return;
+  }
+  
+  currentUser = JSON.parse(userStr);
+  initializeApp();
+});
+
+async function initializeApp() {
+  setupUI();
+  
+  if (currentUser.user_type === 'employee') {
+    showEmployeeProfile();
+  } else {
+    await loadRequisitions();
+    renderRequisitionsTable();
+    setupEventListeners();
+  }
+}
+
+function setupUI() {
+  document.getElementById('profile-name').textContent = currentUser.get_full_name || currentUser.first_name + ' ' + currentUser.last_name || currentUser.email;
+  document.getElementById('profile-role').textContent = formatUserRole(currentUser.user_type || currentUser.role);
+  document.getElementById('user-avatar').textContent = (currentUser.get_full_name || currentUser.first_name + ' ' + currentUser.last_name || currentUser.email).charAt(0).toUpperCase();
+  
+  const quickActions = document.getElementById('quick-actions');
+  quickActions.innerHTML = '';
+  
+  if (currentUser.user_type !== 'employee') {
+    quickActions.innerHTML = `
+      <button class="btn primary" id="add-requisition-btn">
+        <i class="fas fa-briefcase"></i> Post Requisition
+      </button>
+    `;
+  }
+}
+
+function formatUserRole(role) {
+  const roleMap = {
+    'hr_admin': 'HR Admin',
+    'company_admin': 'Company Admin', 
+    'management': 'Management',
+    'supervisor': 'Supervisor',
+    'employee': 'Employee',
+    'candidate': 'Candidate'
+  };
+  return roleMap[role] || role || 'Unknown';
+}
+async function loadRequisitions() {
+  try {
+    // First, get current user details
+    console.log('Fetching current user...');
+    const userResponse = await fetchWithAuth('/api/users/me/');
+    if (userResponse.ok) {
+      const userData = await userResponse.json();
+      currentUser = userData;
+      console.log('Current user data received:', currentUser); // DEBUG LOG
+      sessionStorage.setItem('currentUser', JSON.stringify(userData));
+    } else {
+        console.error('Failed to get current user');
+        return;
+    }
+    
+    // Then load requisitions based on user role
+    let endpoint;
+    if (currentUser.user_type === 'hr_admin') {
+      endpoint = '/api/hr/requisitions/';
+    } else {
+      endpoint = '/api/requisitions/';
+    }
+    
+    console.log(`Fetching requisitions from: ${endpoint}`); // DEBUG LOG
+    const response = await fetchWithAuth(endpoint);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Raw requisitions data from API:', data); // DEBUG LOG
+      
+      const allRequisitions = Array.isArray(data) ? data : (data.results || []);
+      console.log('All requisitions (unfiltered):', allRequisitions); // DEBUG LOG
+      
+      // Filter requisitions based on user role
+      if (currentUser.user_type !== 'hr_admin') {
+        console.log('Filtering requisitions for company:', currentUser.company); // DEBUG LOG
+        requisitions = allRequisitions.filter(req => {
+          console.log('Checking requisition:', req); // DEBUG LOG
+          
+          // Handle different company field formats
+          if (req.company && typeof req.company === 'object') {
+            const isMatch = req.company.id === currentUser.company;
+            console.log(`Comparing ${req.company.id} with ${currentUser.company}. Match: ${isMatch}`); // DEBUG LOG
+            return isMatch;
+          } else if (req.company) {
+            const isMatch = req.company === currentUser.company;
+            console.log(`Comparing ${req.company} with ${currentUser.company}. Match: ${isMatch}`); // DEBUG LOG
+            return isMatch;
+          }
+          console.log('Requisition has no company field, filtering out.'); // DEBUG LOG
+          return false;
+        });
+      } else {
+        requisitions = allRequisitions;
+      }
+      
+      console.log('Final filtered requisitions:', requisitions); // DEBUG LOG
+    } else {
+      requisitions = [];
+    }
+  } catch (error) {
+    console.error('Error loading requisitions:', error);
+    requisitions = [];
+  }
+}
+
+function fetchWithAuth(url, options = {}) {
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Token ${authToken}`
+    }
+  };
+  
+  // Ensure URL has trailing slash
+  const fullUrl = url.endsWith('/') ? 
+    `http://127.0.0.1:8000${url}` : 
+    `http://127.0.0.1:8000${url}/`;
+  
+  console.log('Making request to:', fullUrl);
+  
+  return fetch(fullUrl, {
+    ...defaultOptions,
+    ...options
+  }).then(async response => {
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      let errorText;
+      try {
+        errorText = await response.text();
+        console.error('Error response body:', errorText);
+      } catch (e) {
+        console.error('Could not parse error response');
+      }
+    }
+    
+    return response;
+  }).catch(error => {
+    console.error('Network error:', error);
+    throw error;
+  });
+}
+
+function renderRequisitionsTable() {
+  const tableBody = document.querySelector('#requisitions-table tbody');
+  tableBody.innerHTML = '';
+  
+  if (requisitions.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px;">No requisitions found</td></tr>';
+    return;
+  }
+  
+  requisitions.forEach((requisition, index) => {
+    const row = document.createElement('tr');
+    const pillClass = getStatusClass(requisition.status);
+    
+    // The backend sends submitted_by_name, not submitted_by
+    let submitterName = requisition.submitted_by_name || 'Unknown';
+    
+    row.innerHTML = `
+      <td>${requisition.job_title || requisition.title || 'N/A'}</td>
+      <td>${requisition.department || 'N/A'}</td>
+      <td>${submitterName}</td>
+      <td>${requisition.created_at ? new Date(requisition.created_at).toLocaleDateString() : 'N/A'}</td>
+      <td><span class="pill ${pillClass}">${requisition.status}</span></td>
+      <td class="text-right">
+        <button class="btn tiny view-requisition-btn" data-index="${index}">View</button>
+      </td>
+    `;
+    
+    tableBody.appendChild(row);
+  });
+  
+  document.querySelectorAll('.view-requisition-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const index = parseInt(this.getAttribute('data-index'));
+      viewRequisition(index);
+    });
+  });
+}
+
+
+
+function getStatusClass(status) {
+  const statusMap = {
+    'pending': 'received',
+    'approved': 'fulfilled', 
+    'rejected': 'cancelled',
+    'received': 'received',
+    'in-process': 'in-process',
+    'fulfilled': 'fulfilled',
+    'cancelled': 'cancelled'
+  };
+  return statusMap[status] || 'received';
+}
+
+function showEmployeeProfile() {
+  const mainNav = document.querySelector('.main-nav');
+  if (mainNav) mainNav.style.display = 'none';
+  
+  const quickActions = document.querySelector('.quick-actions');
+  if (quickActions) quickActions.style.display = 'none';
+  
+  const requisitionsPanel = document.querySelector('.panel');
+  if (requisitionsPanel) requisitionsPanel.style.display = 'none';
+  
+  const container = document.querySelector('.container');
+  if (container) {
+    container.innerHTML = `
+      <div style="text-align:center; margin-bottom:30px; padding:20px; background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);">
+        <h1 style="color:var(--darkgreen);">Welcome, ${currentUser.get_full_name || currentUser.first_name}</h1>
+        <p style="color:var(--muted);">${formatUserRole(currentUser.user_type || currentUser.role)}</p>
+      </div>
+      
+      <div style="background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px;">
+        <h3 style="color:var(--darkgreen); margin-bottom:15px;">Your Profile</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:15px;">
+          <div><strong>Email:</strong> ${currentUser.email}</div>
+          <div><strong>Role:</strong> ${formatUserRole(currentUser.user_type || currentUser.role)}</div>
+          <div><strong>Department:</strong> ${currentUser.department || 'TBD'}</div>
+          <div><strong>Phone:</strong> ${currentUser.phone || 'TBD'}</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function setupEventListeners() {
+  document.getElementById('user-avatar').addEventListener('click', function() {
+    document.getElementById('profile-dropdown').style.display = 
+      document.getElementById('profile-dropdown').style.display === 'flex' ? 'none' : 'flex';
+  });
+  
+  document.addEventListener('click', function(e) {
+    const profileDropdown = document.getElementById('profile-dropdown');
+    const avatar = document.getElementById('user-avatar');
+    
+    if (!profileDropdown.contains(e.target) && e.target !== avatar) {
+      profileDropdown.style.display = 'none';
+    }
+  });
+  
+  document.getElementById('edit-profile-btn').addEventListener('click', function() {
+    window.location.href = 'profile.html';
+  });
+  
+  document.getElementById('logout-btn').addEventListener('click', logout);
+  
+  const addRequisitionBtn = document.getElementById('add-requisition-btn');
+  if (addRequisitionBtn) {
+    addRequisitionBtn.addEventListener('click', showAddRequisitionModal);
+  }
+  
+  document.getElementById('requisition-search').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#requisitions-table tbody tr');
+    
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+  });
+  
+  document.getElementById('status-filter').addEventListener('change', function() {
+    const status = this.value;
+    const rows = document.querySelectorAll('#requisitions-table tbody tr');
+    
+    rows.forEach(row => {
+      if (status === '') {
+        row.style.display = '';
+      } else {
+        const statusCell = row.querySelector('.pill');
+        row.style.display = statusCell && statusCell.textContent.toLowerCase() === status.toLowerCase() ? '' : 'none';
+      }
+    });
+  });
+  
+  document.getElementById('addRequisitionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    addRequisition();
+  });
+  
+  document.getElementById('cancelAddRequisition').addEventListener('click', function() {
+    document.getElementById('addRequisitionModal').classList.remove('active');
+  });
+  
+  document.getElementById('closeRequisitionModal').addEventListener('click', function() {
+    document.getElementById('requisitionDetailsModal').classList.remove('active');
+  });
+}
+
+function showAddRequisitionModal() {
+  document.getElementById('addRequisitionForm').reset();
+  document.getElementById('addRequisitionModal').classList.add('active');
+}
+
+async function addRequisition() {
+  // Make sure we have the current user data
+  if (!currentUser.id) {
+    const userResponse = await fetchWithAuth('/api/users/me/');
+    if (userResponse.ok) {
+      const userData = await userResponse.json();
+      currentUser = userData;
+    }
+  }
+  
+  // Get the company ID properly - if it's an object, use the ID, otherwise use the value directly
+  const companyId = typeof currentUser.company === 'object' ? currentUser.company.id : currentUser.company;
+  
+  const formData = {
+    job_title: document.getElementById('requisitionTitle').value,
+    description: document.getElementById('requisitionDescription').value,
+    department: document.getElementById('requisitionDepartment').value,
+    company: companyId, 
+    submitted_by: currentUser.id,
+    location: "TBD", 
+    job_type: "full_time", 
+    min_experience: 0, 
+    max_experience: 5,
+    min_salary: 0, 
+    max_salary: 100000, 
+    requirements: document.getElementById('requisitionDescription').value,
+    skills_required: "TBD", 
+    vacancies: 1 
+  };
+  
+  try {
+    // Use the correct endpoint based on user role
+    let endpoint;
+    if (currentUser.user_type === 'hr_admin') {
+      endpoint = '/api/hr/requisitions/';
+    } else {
+      endpoint = '/api/requisitions/';
+    }
+    
+    const response = await fetchWithAuth(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(formData)
+    });
+    
+    if (response.ok) {
+      const newRequisition = await response.json();
+      requisitions.push(newRequisition);
+      renderRequisitionsTable();
+      document.getElementById('addRequisitionModal').classList.remove('active');
+      alert('Requisition posted successfully!');
+    } else {
+      
+      try {
+        const error = await response.json();
+        let errorMessage = 'Failed to post requisition';
+        
+        if (error && typeof error === 'object') {
+          // Extract field errors from the response
+          const fieldErrors = [];
+          for (const field in error) {
+            if (error[field] && Array.isArray(error[field])) {
+              fieldErrors.push(`${field}: ${error[field].join(', ')}`);
+            }
+          }
+          if (fieldErrors.length > 0) {
+            errorMessage = fieldErrors.join('\n');
+          }
+        }
+        
+        alert('Error: ' + errorMessage);
+      } catch (e) {
+        
+        alert('Error: Failed to post requisition. Please check your form data.');
+      }
+    }
+  } catch (error) {
+    console.error('Error posting requisition:', error);
+    alert('Error posting requisition');
+  }
+}
+
+function viewRequisition(index) {
+  selectedRequisitionIndex = index;
+  const requisition = requisitions[index];
+  
+  // Use submitted_by_name from the API response
+  let submitterName = requisition.submitted_by_name || 'Unknown';
+  
+  document.getElementById('detail-title').textContent = requisition.job_title || requisition.title || 'N/A';
+  document.getElementById('detail-department').textContent = requisition.department || 'N/A';
+  document.getElementById('detail-submittedBy').textContent = submitterName;
+  document.getElementById('detail-date').textContent = requisition.created_at ? new Date(requisition.created_at).toLocaleDateString() : 'N/A';
+  document.getElementById('detail-status').textContent = requisition.status || 'N/A';
+  document.getElementById('detail-description').textContent = requisition.description || 'N/A';
+  
+  // Hide edit and delete buttons for all roles
+  document.getElementById('edit-requisition-btn').style.display = 'none';
+  document.getElementById('delete-requisition-btn').style.display = 'none';
+  
+  document.getElementById('requisitionDetailsModal').classList.add('active');
+}
+
+
+
+function logout() {
+  sessionStorage.removeItem('currentUser');
+  sessionStorage.removeItem('authToken');
+  window.location.href = 'login.html';
+}
+</script>
+</body>
+</html>

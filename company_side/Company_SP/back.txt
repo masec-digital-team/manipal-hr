@@ -1,0 +1,2491 @@
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+import uuid
+
+
+class User(AbstractUser):
+    USER_TYPES = (
+        ('candidate', 'Candidate'),
+        ('management', 'Management'),
+        ('supervisor', 'Supervisor'),
+        ('employee', 'Employee'),
+        ('hr_admin', 'HR Admin'),
+        ('company_admin', 'Company Admin')
+    )
+
+    user_type = models.CharField(max_length=20, choices=USER_TYPES)
+    email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=15, blank=True)
+    is_email_verified = models.BooleanField(default=False)
+    email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False)
+    company = models.ForeignKey('corporate.Company', on_delete=models.CASCADE,
+                                null=True, blank=True, related_name='users')
+
+    # For corporate hierarchy
+    manager = models.ForeignKey('self', on_delete=models.SET_NULL, null=True,
+                                blank=True, related_name='subordinates')
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'user_type']
+
+    @property
+    def role(self):
+        """Alias for user_type to match frontend"""
+        return self.user_type
+
+    @property
+    def department(self):
+        """Get department from employee profile"""
+        if hasattr(self, 'employee_profile'):
+            return self.employee_profile.department
+        return None
+
+    class Meta:
+        ordering = ['email']
+
+    def __str__(self):
+        return f"{self.email} ({self.get_user_type_display()})"
+
+
+class CandidateProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='candidate_profile')
+
+    # Profile Header
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    background_image = models.ImageField(upload_to='backgrounds/', blank=True, null=True)
+    bio = models.TextField(blank=True, help_text="Short bio/about me")
+    college = models.CharField(max_length=200, blank=True)
+    location = models.CharField(max_length=100, blank=True, help_text="Current city")
+
+    # Profile Stats
+    years_experience = models.DecimalField(max_digits=4, decimal_places=1, default=0)
+    total_projects = models.IntegerField(default=0)
+    total_certificates = models.IntegerField(default=0)
+
+    # Profile Completion
+    profile_completion = models.IntegerField(default=0, help_text="Percentage 0-100")
+
+    # Social Links
+    linkedin_url = models.URLField(blank=True)
+    github_url = models.URLField(blank=True)
+    twitter_url = models.URLField(blank=True)
+    portfolio_url = models.URLField(blank=True)
+
+    # Personal Details (existing)
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, choices=(
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+    ), blank=True)
+    address = models.TextField(blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
+    pincode = models.CharField(max_length=10, blank=True)
+
+    # Professional Details (existing)
+    current_company = models.CharField(max_length=200, blank=True)
+    current_designation = models.CharField(max_length=100, blank=True)
+    total_experience = models.DecimalField(max_digits=4, decimal_places=1, default=0)
+    current_salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    expected_salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    notice_period = models.IntegerField(help_text="In days", default=30)
+
+    # Skills (keep text field for backward compatibility)
+    skills = models.TextField(help_text="Comma separated skills", blank=True)
+    summary = models.TextField(blank=True)
+
+    # Documents
+    resume = models.FileField(upload_to='resumes/', blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def calculate_profile_completion(self):
+        """Calculate profile completion percentage"""
+        fields_to_check = [
+            self.avatar, self.bio, self.date_of_birth, self.gender,
+            self.city, self.resume, self.linkedin_url,
+            self.user.education.exists(),
+            self.user.work_experience.exists(),
+            self.user.candidate_skills.exists(),
+        ]
+
+        completed = sum(1 for field in fields_to_check if field)
+        self.profile_completion = int((completed / len(fields_to_check)) * 100)
+        self.save()
+        return self.profile_completion
+
+
+class Education(models.Model):
+    profile = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name='education')
+    degree = models.CharField(max_length=100)
+    institution = models.CharField(max_length=200)
+    field_of_study = models.CharField(max_length=100)
+    start_year = models.IntegerField()
+    end_year = models.IntegerField(null=True, blank=True)
+    grade = models.CharField(max_length=20, blank=True)
+
+    class Meta:
+        ordering = ['-end_year']
+
+
+class WorkExperience(models.Model):
+    profile = models.ForeignKey(CandidateProfile, on_delete=models.CASCADE, related_name='work_experience')
+    company = models.CharField(max_length=200)
+    designation = models.CharField(max_length=100)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    is_current = models.BooleanField(default=False)
+    description = models.TextField()
+
+    class Meta:
+        ordering = ['-start_date']
+
+
+class CandidateProject(models.Model):
+    """Projects completed by candidate"""
+    candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    technologies = models.CharField(max_length=500, help_text="Comma-separated technologies")
+    project_url = models.URLField(blank=True, help_text="Live project or GitHub URL")
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    is_ongoing = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'candidate_projects'
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f"{self.candidate.get_full_name()} - {self.title}"
+
+
+class CandidateCertificate(models.Model):
+    """Certificates earned by candidate"""
+    candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name='certificates')
+    name = models.CharField(max_length=200, help_text="Certificate name")
+    issuer = models.CharField(max_length=200, help_text="Issuing organization")
+    issue_date = models.DateField()
+    expiry_date = models.DateField(null=True, blank=True)
+    credential_id = models.CharField(max_length=100, blank=True)
+    credential_url = models.URLField(blank=True, help_text="Verification URL")
+    certificate_file = models.FileField(upload_to='certificates/', blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'candidate_certificates'
+        ordering = ['-issue_date']
+
+    def __str__(self):
+        return f"{self.candidate.get_full_name()} - {self.name}"
+
+
+class CandidateSkill(models.Model):
+    """Skills with proficiency levels"""
+    PROFICIENCY_CHOICES = (
+        (1, 'Beginner'),
+        (2, 'Elementary'),
+        (3, 'Intermediate'),
+        (4, 'Advanced'),
+        (5, 'Expert'),
+    )
+
+    candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name='candidate_skills')
+    skill_name = models.CharField(max_length=100)
+    proficiency_level = models.IntegerField(choices=PROFICIENCY_CHOICES, default=3)
+    years_of_experience = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'candidate_skills'
+        unique_together = ('candidate', 'skill_name')
+        ordering = ['-proficiency_level', 'skill_name']
+
+    def __str__(self):
+        return f"{self.candidate.get_full_name()} - {self.skill_name} (Level {self.proficiency_level})"
+
+
+class CandidateLanguage(models.Model):
+    """Languages known by candidate"""
+    PROFICIENCY_CHOICES = (
+        ('basic', 'Basic'),
+        ('conversational', 'Conversational'),
+        ('fluent', 'Fluent'),
+        ('native', 'Native'),
+    )
+
+    candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name='languages')
+    language_name = models.CharField(max_length=100)
+    proficiency = models.CharField(max_length=20, choices=PROFICIENCY_CHOICES)
+    can_read = models.BooleanField(default=True)
+    can_write = models.BooleanField(default=True)
+    can_speak = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'candidate_languages'
+        unique_together = ('candidate', 'language_name')
+        ordering = ['language_name']
+
+    def __str__(self):
+        return f"{self.candidate.get_full_name()} - {self.language_name}"  this is updated models.py /accounts
+
+
+
+
+from rest_framework import serializers
+from accounts.models import (
+    User, CandidateProfile, Education, WorkExperience,
+    CandidateProject, CandidateCertificate, CandidateSkill, CandidateLanguage
+)
+from jobs.models import Job, Application , SavedJob
+from corporate.models import Company, JobRequisition
+from corporate.models import EmployeeProfile
+from corporate.models import EmployeeComment
+
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    employees_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Company
+        fields = '__all__'
+
+    def get_employees_count(self, obj):
+        return obj.users.count()
+
+
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+    """A simple serializer for nested user representations."""
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'email', 'get_full_name']
+
+
+# In api/serializers.py
+
+class UserSerializer(serializers.ModelSerializer):
+    role = serializers.CharField(source='user_type', read_only=True)
+    department = serializers.SerializerMethodField()
+    # company = serializers.CharField(read_only=True)
+    company = serializers.PrimaryKeyRelatedField(read_only=True)
+    manager = SimpleUserSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'phone', 'user_type', 'role', 'department',
+            'is_email_verified', 'date_joined', 'company', 'manager',
+        ]
+
+    def get_department(self, obj):
+        if hasattr(obj, 'employee_profile'):
+            return obj.employee_profile.department
+        return None
+
+class CandidateSkillSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CandidateSkill
+        fields = '__all__'
+
+
+class CandidateLanguageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CandidateLanguage
+        fields = '__all__'
+
+
+class CandidateProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CandidateProject
+        fields = '__all__'
+
+class BasicDetailsUpdateSerializer(serializers.Serializer):
+    """
+    A special serializer for handling the "Basic Details" update form,
+    which contains fields from both User and CandidateProfile models.
+    """
+    # User fields
+    first_name = serializers.CharField(max_length=30)
+    last_name = serializers.CharField(max_length=30)
+    phone = serializers.CharField(max_length=15, required=False, allow_blank=True)
+
+    # CandidateProfile fields
+    date_of_birth = serializers.DateField(required=False, allow_null=True)
+    gender = serializers.ChoiceField(
+        choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')],
+        required=False, allow_blank=True
+    )
+    marital_status = serializers.ChoiceField(
+        choices=[('single', 'Single'), ('married', 'Married'), ('divorced', 'Divorced')],
+        required=False, allow_blank=True
+    )
+    # Note: 'status' is not a field in CandidateProfile.
+    # If you have a field like 'job_status' in your profile model, map it here.
+    # For now, we will omit it as it's not in the model.
+
+
+class CandidateCertificateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CandidateCertificate
+        fields = '__all__'
+
+
+class EducationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Education
+        fields = '__all__'
+
+
+class WorkExperienceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkExperience
+        fields = '__all__'
+
+
+class SavedJobSerializer(serializers.ModelSerializer):
+    """Serializer for the SavedJob model"""
+    class Meta:
+        model = SavedJob
+        fields = '__all__'
+
+
+class CandidateProfileSerializer(serializers.ModelSerializer):
+    # This is the crucial line that fixes your frontend
+    user = UserSerializer(read_only=True)
+
+    skills_list = CandidateSkillSerializer(source='user.candidate_skills', many=True, read_only=True)
+    languages = CandidateLanguageSerializer(source='user.languages', many=True, read_only=True)
+    projects = CandidateProjectSerializer(source='user.projects', many=True, read_only=True)
+    certificates = CandidateCertificateSerializer(source='user.certificates', many=True, read_only=True)
+    education = EducationSerializer(source='education', many=True, read_only=True)
+    work_experience = WorkExperienceSerializer(source='work_experience', many=True, read_only=True)
+
+    class Meta:
+        model = CandidateProfile
+        fields = '__all__'
+
+
+class JobSerializer(serializers.ModelSerializer):
+    date_posted = serializers.DateTimeField(source='created_at', read_only=True)
+    applications_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Job
+        fields = '__all__'
+
+        extra_kwargs = {
+            'company_name': {'required': False}
+        }
+
+    def get_applications_count(self, obj):
+        return obj.applications.count()
+
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    date_applied = serializers.DateTimeField(source='applied_at', read_only=True)
+    candidate_name = serializers.CharField(source='candidate.get_full_name', read_only=True)
+    job_title = serializers.CharField(source='job.title', read_only=True)
+
+    class Meta:
+        model = Application
+        fields = '__all__'
+
+
+
+class JobRequisitionSerializer(serializers.ModelSerializer):
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    submitted_by_name = serializers.CharField(source='submitted_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = JobRequisition
+        fields = '__all__'
+        depth = 1
+
+
+
+# --- HR ADMIN SERIALIZERS ---
+
+class HRUserSerializer(serializers.ModelSerializer):
+    """Serializer to show basic user info for employees in a company"""
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    class Meta:
+        model = User
+        fields = ['id', 'full_name', 'email', 'user_type', 'department']
+
+class HRCompanySerializer(serializers.ModelSerializer):
+    """Serializer for Companies with employee count and list for HR Admin"""
+    employees = HRUserSerializer(source='users', many=True, read_only=True)
+    employees_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Company
+        fields = '__all__'
+
+    def get_employees_count(self, obj):
+        return obj.users.count()
+
+class HRCandidateListSerializer(serializers.ModelSerializer):
+    """Serializer for listing candidates"""
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    phone = serializers.CharField(source='candidate_profile.phone', read_only=True)
+    current_designation = serializers.CharField(source='candidate_profile.current_designation', read_only=True)
+    resume = serializers.FileField(source='candidate_profile.resume', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'full_name', 'email', 'phone', 'current_designation', 'date_joined', 'resume']
+
+# In api/serializers.py, find the HRCandidateDetailSerializer class
+
+class HRCandidateDetailSerializer(serializers.ModelSerializer):
+    """Detailed serializer for a single candidate's profile - FIXED VERSION"""
+
+    # --- FIX: Explicitly define the fields you need ---
+    phone = serializers.CharField(source='candidate_profile.phone', allow_null=True)
+    date_of_birth = serializers.DateField(source='candidate_profile.date_of_birth', allow_null=True)
+    address = serializers.CharField(source='candidate_profile.address', allow_null=True)
+    current_company = serializers.CharField(source='candidate_profile.current_company', allow_null=True)
+    current_designation = serializers.CharField(source='candidate_profile.current_designation', allow_null=True)
+
+    total_experience = serializers.DecimalField(
+        source='candidate_profile.total_experience',
+        max_digits=4,
+        decimal_places=1,
+        allow_null=True
+    )
+
+    skills = serializers.CharField(source='candidate_profile.skills', allow_null=True)
+    resume = serializers.FileField(source='candidate_profile.resume', allow_null=True)
+    avatar = serializers.ImageField(source='candidate_profile.avatar', allow_null=True)
+
+    # --- FIX: Include applications and education ---
+    applications = ApplicationSerializer(many=True, read_only=True)
+    education = EducationSerializer(source='candidate_profile.education', many=True, read_only=True)
+    work_experience = WorkExperienceSerializer(source='candidate_profile.work_experience', many=True, read_only=True)
+
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'full_name', 'email', 'phone', 'date_joined',
+            'phone', 'date_of_birth', 'address', 'current_company',
+            'current_designation', 'total_experience', 'skills', 'resume',
+            'avatar', 'applications', 'education', 'work_experience'
+        ]
+class HRJobSerializer(serializers.ModelSerializer):
+    """Serializer for Jobs for HR Admin"""
+    posted_by_name = serializers.CharField(source='posted_by.get_full_name', read_only=True)
+    applications_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Job
+        fields = '__all__'
+
+    def get_applications_count(self, obj):
+        return obj.applications.count()
+
+class HRJobRequisitionSerializer(serializers.ModelSerializer):
+    """Serializer for Job Requisitions for HR Admin"""
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    submitted_by_name = serializers.CharField(source='submitted_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = JobRequisition
+        fields = '__all__'
+
+class HRAdminProfileSerializer(serializers.ModelSerializer):
+    """Serializer for logged-in HR Admin's profile"""
+    full_name = serializers.CharField(source='get_full_name', read_only=True)
+    role = serializers.CharField(source='user_type', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'full_name', 'phone', 'role', 'date_joined']
+
+class EmployeeProfileSerializer(serializers.ModelSerializer):
+    """Serializer for the EmployeeProfile model."""
+    class Meta:
+        model = EmployeeProfile
+        # List all fields you want to be editable/viewable via the API
+        fields = '__all__'
+
+
+class CompanyEmployeeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for a User object, including their nested EmployeeProfile.
+    This is the main serializer for employee list and detail views.
+    """
+    # Use the existing UserSerializer for basic user info
+    # and add the nested profile.
+    employee_profile = EmployeeProfileSerializer(required=False)
+    manager = SimpleUserSerializer(read_only=True)  # Add this line
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name', 'user_type',
+            'phone', 'date_joined', 'employee_profile', 'manager' , 'company'
+        ]
+
+
+
+class EmployeeCommentSerializer(serializers.ModelSerializer):
+    commented_by_name = serializers.CharField(source='commented_by.get_full_name', read_only=True)
+
+    class Meta:
+        model = EmployeeComment
+        fields = ['id', 'comment', 'rating', 'commented_by_name', 'created_at']
+        read_only_fields = ['commented_by', 'created_at']   this is serlizers.py/api updated OneToOneField  
+
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+# from rest_framework.authtoken.views import obtain_auth_token
+from . import views
+
+
+
+# # Create a router and register our viewsets with it.
+router = DefaultRouter()
+router.register(r'requisitions', views.JobRequisitionViewSet)
+router.register(r'companies', views.CompanyViewSet)
+router.register(r'jobs', views.JobViewSet)
+# router.register(r'requisitions', views.JobRequisitionViewSet)
+router.register(r'applications', views.ApplicationViewSet)
+router.register(r'users', views.UserViewSet)
+router.register(r'company/employees', views.CompanyEmployeeViewSet, basename='company-employee')
+
+urlpatterns = [
+    path('users/me/', views.current_user_api, name='current_user_api'),
+    path('company/employees/me/', views.current_employee_profile_api, name='current_employee_profile_api'),
+    path('', include(router.urls)),
+    path('login/', views.custom_api_login, name='api_login'),
+    path('logout/', views.api_logout, name='api_logout'),
+    path('dashboard/stats/', views.dashboard_stats, name='dashboard_stats'),
+    # path('profile/', views.candidate_profile_api, name='candidate_profile_api'),
+    path('register/', views.api_register, name='api_register'),
+    path('applications/', views.user_applications, name='user_applications'),
+    path('saved-jobs/', views.user_saved_jobs, name='user_saved_jobs'),
+    # path('profile/applications/', views.user_applications, name='user_applications'),
+    path('auth/check/', views.auth_check, name='auth_check'),
+    path('company/employees/<int:employee_id>/comments/', views.employee_comments, name='employee_comments'),
+    path('requisitions/', views.hr_requisitions, name='requisitions'),
+    path('employees/<int:employee_id>/comments/', views.employee_comments_api, name='employee_comments_api'),
+    path('profile/me/', views.current_user_employee_profile_api, name='current_user_employee_profile_api'),
+
+
+
+# Add these to your urlpatterns list:
+    path('users/', views.UserViewSet.as_view({'get': 'list'}), name='users_list'),
+    # path('requisitions/', views.JobViewSet.as_view({'get': 'list'}), name='requisitions_list'),
+# Add these lines to your urlpatterns list in api/urls.py
+
+    path('profile/avatar/', views.upload_avatar, name='upload_avatar'),
+    path('profile/background/', views.upload_background_image, name='upload_background'),
+    # New endpoints for profile sections
+    path('profile/education/', views.education_api, name='education_api'),
+    path('profile/education/<int:pk>/', views.education_api, name='education_detail_api'),
+    path('profile/work-experience/', views.work_experience_api, name='work_experience_api'),
+    path('profile/work-experience/<int:pk>/', views.work_experience_api, name='work_experience_detail_api'),
+    path('profile/projects/', views.projects_api, name='projects_api'),
+    path('profile/projects/<int:pk>/', views.projects_api, name='project_detail_api'),
+    path('profile/certificates/', views.certificates_api, name='certificates_api'),
+    path('profile/certificates/<int:pk>/', views.certificates_api, name='certificate_detail_api'),
+    path('profile/skills/', views.skills_api, name='skills_api'),
+    path('profile/skills/<int:pk>/', views.skills_api, name='skill_detail_api'),
+    path('profile/languages/', views.languages_api, name='languages_api'),
+    path('profile/languages/<int:pk>/', views.languages_api, name='language_detail_api'),
+    path('hr/profile/update/', views.hr_profile_update, name='hr_profile_update'),
+
+    # --- HR ADMIN DASHBOARD URLS (New) ---
+    path('hr/dashboard/stats/', views.hr_dashboard_stats, name='hr_dashboard_stats'),
+    path('hr/profile/', views.hr_profile, name='hr_profile'),
+    path('hr/companies/', views.hr_companies, name='hr_companies'),
+    path('hr/companies/<int:pk>/', views.hr_companies, name='hr_company_detail'),
+    path('hr/companies/<int:pk>/toggle-status/', views.hr_toggle_company_status, name='hr_toggle_company_status'),
+    path('hr/jobs/', views.hr_jobs, name='hr_jobs'),
+    path('hr/jobs/<int:pk>/', views.hr_jobs, name='hr_job_detail'),
+    path('hr/candidates/', views.hr_candidates, name='hr_candidates'),
+    path('hr/candidates/<int:pk>/', views.hr_candidates, name='hr_candidate_detail'),
+    path('hr/requisitions/', views.hr_requisitions, name='hr_requisitions'),
+    path('hr/requisitions/<int:pk>/', views.hr_requisitions, name='hr_requisition_detail'),
+]
+#
+
+this is updated urls.py/api
+
+
+from rest_framework.decorators import api_view, permission_classes,  action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status, viewsets
+from django.contrib.auth import authenticate , get_user_model
+from rest_framework.authtoken.models import Token
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404
+
+# Import models and serializers
+from accounts.models import User, CandidateProfile
+from jobs.models import Job, Application, Education ,WorkExperience
+from corporate.models import Company
+from corporate.models import EmployeeProfile
+from corporate.models import EmployeeComment
+from corporate.models import JobRequisition
+from .serializers import SavedJobSerializer
+from jobs.models import SavedJob
+from jobs.models import Job
+from jobs.serializers import (
+    JobSerializer, ApplicationSerializer,
+    CandidateProfileSerializer,
+)
+
+from .serializers import (
+    JobRequisitionSerializer, CompanySerializer, UserSerializer,
+    EducationSerializer, WorkExperienceSerializer, CandidateProjectSerializer,
+    CandidateCertificateSerializer, CandidateSkillSerializer, CandidateLanguageSerializer,
+    CompanyEmployeeSerializer,  EmployeeProfileSerializer,
+    EmployeeCommentSerializer,
+)
+import uuid
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def custom_api_login(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    # Use the custom EmailBackend
+    from accounts.backends import EmailBackend
+    backend = EmailBackend()
+    user = backend.authenticate(request, username=username, password=password)
+
+    if user:
+        # Create or get token
+        token, created = Token.objects.get_or_create(user=user)
+
+        # Return user data with token
+        return Response({
+            'token': token.key,
+            'user': UserSerializer(user).data
+        })
+    else:
+        return Response({
+            'error': 'Invalid credentials'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# @csrf_exempt
+# def custom_api_login(request):
+#     """Custom API login view that returns token and user data."""
+#     username = request.data.get('username')
+#     password = request.data.get('password')
+#
+#     # Use the custom EmailBackend
+#     from accounts.backends import EmailBackend
+#     backend = EmailBackend()
+#     user = backend.authenticate(request, username=username, password=password)
+#
+#     if user:
+#         # Create or get token
+#         token, created = Token.objects.get_or_create(user=user)
+#
+#         # Return user data with token
+#         return Response({
+#             'token': token.key,
+#             'user': UserSerializer(user).data
+#         })
+#     else:
+#         return Response({
+#             'error': 'Invalid credentials'
+#         }, status=status.HTTP_401_UNAUTHORIZED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def auth_check(request):
+    """Check if user is authenticated"""
+    return Response({
+        'authenticated': True,
+        'user': UserSerializer(request.user).data
+    })
+
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def api_register(request):
+    """API registration view for creating new users."""
+    try:
+        email = request.data.get('email')
+        password = request.data.get('password')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        phone = request.data.get('phone')
+        user_type = request.data.get('user_type', 'candidate')
+
+        if User.objects.filter(email=email).exists():
+            return Response({'error': 'Email already registered'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # --- ADD THIS LINE ---
+        # Generate a unique username from the email
+        username = email.split('@')[0] + str(uuid.uuid4())[:8]
+
+        user = User.objects.create_user(
+            username=username,  # Add the generated username here
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            user_type=user_type
+        )
+
+        token, created = Token.objects.get_or_create(user=user)
+
+        return Response({
+            'message': 'User created successfully',
+            'token': token.key,
+            'user': UserSerializer(user).data
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_logout(request):
+    """Deletes the user's auth token."""
+    try:
+        request.user.auth_token.delete()
+        return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
+    except:
+        return Response({'error': 'Error logging out'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_stats(request):
+    """API view for dashboard statistics."""
+    return Response({'message': 'Dashboard stats - to be implemented'})
+
+
+
+# In api/views.py
+@api_view(['GET', 'PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def candidate_profile_api(request):
+    profile, created = CandidateProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'GET':
+        serializer = CandidateProfileSerializer(profile)
+        return Response(serializer.data)
+
+    elif request.method in ['PUT', 'PATCH']:
+        # --- REVISED LOGIC ---
+        # Check if this is the special "basic details" update FIRST
+        if request.query_params.get('update_section') == 'basic':
+            print("DEBUG: Handling 'basic' update section.") # For debugging
+            serializer = BasicDetailsUpdateSerializer(data=request.data)
+            if serializer.is_valid():
+                # Update User model fields
+                user = request.user
+                user.first_name = serializer.validated_data.get('first_name', user.first_name)
+                user.last_name = serializer.validated_data.get('last_name', user.last_name)
+                user.phone = serializer.validated_data.get('phone', user.phone)
+                user.save()
+
+                # Update CandidateProfile model fields
+                profile.date_of_birth = serializer.validated_data.get('date_of_birth', profile.date_of_birth)
+                profile.gender = serializer.validated_data.get('gender', profile.gender)
+                profile.marital_status = serializer.validated_data.get('marital_status', profile.marital_status)
+                profile.save()
+
+                # Return the full updated profile
+                full_serializer = CandidateProfileSerializer(profile)
+                return Response(full_serializer.data)
+            else:
+                print("DEBUG: Basic update serializer errors:", serializer.errors) # For debugging
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle other profile updates (like avatar, resume, etc.)
+        # This part will now ONLY be reached for other updates, not for basic details
+        if request.content_type.startswith('multipart/form-data'):
+            if 'avatar' in request.FILES:
+                profile.avatar = request.FILES['avatar']
+            if 'resume' in request.FILES:
+                profile.resume = request.FILES['resume']
+            profile.save()
+            return Response({'message': 'Files uploaded successfully'})
+        else:
+            # This block should ideally not be reached for basic details anymore
+            print("DEBUG: Reached generic profile update block with data:", request.data)
+            serializer = CandidateProfileSerializer(profile, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_applications(request):
+    """API view for user job applications."""
+    applications = Application.objects.filter(candidate=request.user)
+    serializer = ApplicationSerializer(applications, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_saved_jobs(request):
+    """API view for user saved jobs."""
+    # Assuming 'saved_jobs' is a ManyToMany field on the User model
+    saved_jobs = request.user.saved_jobs.all()
+    serializer = JobSerializer(saved_jobs, many=True)
+    return Response(serializer.data)
+
+
+
+# In api/views.py, find the CompanyViewSet class
+
+class CompanyViewSet(viewsets.ModelViewSet):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+
+    # --- ADD THIS METHOD ---
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            # --- THIS IS THE FIX ---
+            # Return a more detailed error message
+            return Response(
+                {
+                    'error': 'Validation failed. Please check all fields.',
+                    'details': serializer.errors
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+
+class JobViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for viewing and editing jobs.
+    """
+    queryset = Job.objects.filter(status='active').order_by('-created_at')
+    serializer_class = JobSerializer
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
+    # --- ADD THIS ENTIRE METHOD ---
+    @action(detail=True, methods=['post', 'delete'], permission_classes=[IsAuthenticated])
+    def save(self, request, pk=None):
+        """
+        Handles saving and unsaving a job for an authenticated user.
+        - POST /api/jobs/{id}/save/ -> Saves the job.
+        - DELETE /api/jobs/{id}/save/ -> Unsaves the job.
+        """
+        job = self.get_object()
+        user = request.user
+
+        if request.method == 'POST':
+            # Save the job
+            saved_job, created = SavedJob.objects.get_or_create(candidate=user, job=job)
+            if created:
+                return Response({'message': 'Job saved successfully!'}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({'message': 'Job was already saved.'}, status=status.HTTP_200_OK)
+
+        elif request.method == 'DELETE':
+            # Unsave the job
+            deleted_count, _ = SavedJob.objects.filter(candidate=user, job=job).delete()
+            if deleted_count > 0:
+                return Response({'message': 'Job unsaved successfully!'}, status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({'error': 'Job was not in your saved list.'}, status=status.HTTP_404_NOT_FOUND)
+
+# In api/views.py - Add or replace this entire ViewSet
+
+class JobRequisitionViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for viewing and editing job requisitions.
+    Accessible by hr_admin, company_admin, and management.
+    """
+    queryset = JobRequisition.objects.all()
+    serializer_class = JobRequisitionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.user_type == 'hr_admin':
+            return JobRequisition.objects.all()
+        elif hasattr(user, 'company') and user.company:
+            return JobRequisition.objects.filter(company=user.company)
+        else:
+            return JobRequisition.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save(company=self.request.user.company, submitted_by=self.request.user)
+
+# class JobRequisitionViewSet(viewsets.ModelViewSet):
+#     """API endpoint for viewing and editing job requisitions."""
+#     queryset = JobRequisition.objects.all()
+#     serializer_class = JobRequisitionSerializer
+#     permission_classes = [IsAuthenticated]
+#
+#     # --- ADD PERMISSION CHECKS ---
+#     def get_permissions(self):
+#         # Anyone can view list, but only certain roles can modify
+#         if self.action in ['create', 'update', 'partial_update', 'destroy']:
+#             self.permission_classes = [IsAuthenticated]
+#         return [permission() for permission in self.permission_classes]
+#
+#     def get_queryset(self):
+#         user = self.request.user
+#         if user.user_type == 'hr_admin':
+#             return JobRequisition.objects.all()
+#         elif user.company:
+#             return JobRequisition.objects.filter(company=user.company)
+#         else:
+#             return JobRequisition.objects.none()  # No access if no company
+#
+#     def perform_create(self, serializer):
+#         # Automatically assign company and submitted_by
+#         serializer.save(company=self.request.user.company, submitted_by=self.request.user)
+
+
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     if user.user_type == 'hr_admin':
+    #         return JobRequisition.objects.all()
+    #     else:
+    #         # Filter by company for non-HR users
+    #         return JobRequisition.objects.filter(company=user.company)
+
+
+class ApplicationViewSet(viewsets.ModelViewSet):
+    """API endpoint for viewing and creating job applications."""
+    serializer_class = ApplicationSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Application.objects.all()
+
+    def get_queryset(self):
+        return Application.objects.filter(candidate=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(candidate=self.request.user)
+
+
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    """API endpoint to view users. Can be filtered by user_type."""
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user_type = self.request.query_params.get('user_type', None)
+        if user_type is not None:
+            queryset = queryset.filter(user_type=user_type)
+        return queryset
+
+    def destroy(self, request, *args, **kwargs):
+        # Only allow hr_admin or company_admin to delete users
+        if request.user.user_type not in ['hr_admin', 'company_admin']:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+
+# --- PROFILE SECTION VIEWS ---
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_avatar(request):
+    """Upload profile avatar"""
+    try:
+        profile, created = CandidateProfile.objects.get_or_create(user=request.user)
+        if 'avatar' in request.FILES:
+            profile.avatar = request.FILES['avatar']
+            profile.save()
+            return Response({'message': 'Avatar uploaded successfully!', 'avatar_url': profile.avatar.url})
+        return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_background_image(request):
+    """Upload profile background image"""
+    try:
+        profile, created = CandidateProfile.objects.get_or_create(user=request.user)
+        if 'background_image' in request.FILES:
+            profile.background_image = request.FILES['background_image']
+            profile.save()
+            return Response({'message': 'Background image uploaded successfully!',
+                             'background_image_url': profile.background_image.url})
+        return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# In api/views.py
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def education_api(request, pk=None):
+    """API for education items"""
+    profile, created = CandidateProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'GET':
+        education = profile.education.all()
+        serializer = EducationSerializer(education, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Add profile to the request data
+        data = request.data.copy()
+        data['profile'] = profile.id
+
+        serializer = EducationSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE' and pk:
+        education = get_object_or_404(profile.education, pk=pk)
+        education.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def work_experience_api(request, pk=None):
+    """API for work experience items"""
+    profile, created = CandidateProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'GET':
+        experience = profile.work_experience.all()
+        serializer = WorkExperienceSerializer(experience, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Add profile to the request data
+        data = request.data.copy()
+        data['profile'] = profile.id
+
+        serializer = WorkExperienceSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE' and pk:
+        experience = get_object_or_404(profile.work_experience, pk=pk)
+        experience.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def projects_api(request, pk=None):
+    """API for project items"""
+    if request.method == 'GET':
+        projects = request.user.projects.all()
+        serializer = CandidateProjectSerializer(projects, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Add candidate to the request data
+        data = request.data.copy()
+        data['candidate'] = request.user.id
+
+        serializer = CandidateProjectSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE' and pk:
+        project = get_object_or_404(request.user.projects, pk=pk)
+        project.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def certificates_api(request, pk=None):
+    """API for certificate items"""
+    if request.method == 'GET':
+        certificates = request.user.certificates.all()
+        serializer = CandidateCertificateSerializer(certificates, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Add candidate to the request data
+        data = request.data.copy()
+        data['candidate'] = request.user.id
+
+        serializer = CandidateCertificateSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE' and pk:
+        certificate = get_object_or_404(request.user.certificates, pk=pk)
+        certificate.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# In api/views.py
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def skills_api(request, pk=None):
+    """API for skill items"""
+    if request.method == 'GET':
+        skills = request.user.candidate_skills.all()
+        serializer = CandidateSkillSerializer(skills, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Check if skill already exists
+        skill_name = request.data.get('skill_name', '').lower().strip()
+        if request.user.candidate_skills.filter(skill_name__iexact=skill_name).exists():
+            return Response(
+                {'error': f'Skill "{skill_name}" already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Add candidate to the request data
+        data = request.data.copy()
+        data['candidate'] = request.user.id
+
+        serializer = CandidateSkillSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE' and pk:
+        skill = get_object_or_404(request.user.candidate_skills, pk=pk)
+        skill.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def languages_api(request, pk=None):
+    """API for language items"""
+    if request.method == 'GET':
+        languages = request.user.languages.all()
+        serializer = CandidateLanguageSerializer(languages, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Check if language already exists
+        language_name = request.data.get('language_name', '').lower().strip()
+        if request.user.languages.filter(language_name__iexact=language_name).exists():
+            return Response(
+                {'error': f'Language "{language_name}" already exists'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Add candidate to the request data
+        data = request.data.copy()
+        data['candidate'] = request.user.id
+
+        serializer = CandidateLanguageSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE' and pk:
+        language = get_object_or_404(request.user.languages, pk=pk)
+        language.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# In api/serializers.py (add this new class)
+
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def current_user_api(request):
+    """Get or update current user info"""
+    if request.method == 'GET':
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
+    elif request.method == 'PATCH':
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# --- HR ADMIN DASHBOARD VIEWS ---
+
+# --- HR ADMIN DASHBOARD VIEWS ---
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def hr_dashboard_stats(request):
+    """API view for HR admin dashboard statistics."""
+    if request.user.user_type != 'hr_admin':
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    # --- FIX: Import models from the correct files ---
+    from corporate.models import Company, JobRequisition
+    from accounts.models import User
+    from jobs.models import Job
+
+    stats = {
+        'totalCompanies': Company.objects.count(),
+        'totalCandidates': User.objects.filter(user_type='candidate').count(),
+        'totalRequisitions': JobRequisition.objects.filter(status='pending').count(),
+        'totalJobs': Job.objects.filter(status='active').count(),
+    }
+    return Response(stats)
+
+
+# In api/views.py, find and replace the hr_profile function
+
+# In api/views.py, update the hr_profile function
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def hr_profile(request):
+    """API view for logged-in HR admin's profile."""
+    if request.user.user_type != 'hr_admin':
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    # Use the basic UserSerializer which includes all necessary fields
+    from .serializers import UserSerializer
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def hr_companies(request, pk=None):
+    """API for managing companies."""
+    if request.user.user_type != 'hr_admin':
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    from corporate.models import Company
+    from .serializers import HRCompanySerializer, CompanySerializer
+
+    if request.method == 'GET':
+        if pk:
+            company = get_object_or_404(Company, pk=pk)
+            serializer = HRCompanySerializer(company)
+            return Response(serializer.data)
+        else:
+            companies = Company.objects.all()
+            serializer = HRCompanySerializer(companies, many=True)
+            return Response(serializer.data)
+
+    elif request.method == 'POST':
+        serializer = CompanySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE' and pk:
+        company = get_object_or_404(Company, pk=pk)
+        company.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'POST', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def hr_jobs(request, pk=None):
+    """API for managing jobs."""
+    if request.user.user_type != 'hr_admin':
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    from jobs.models import Job
+    from .serializers import HRJobSerializer, JobSerializer
+
+    if request.method == 'GET':
+        if pk:
+            job = get_object_or_404(Job, pk=pk)
+            serializer = HRJobSerializer(job)
+            return Response(serializer.data)
+        else:
+            jobs = Job.objects.all().order_by('-created_at')
+            serializer = HRJobSerializer(jobs, many=True)
+            return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Handle both JSON and FormData
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            # For FormData
+            data = request.data.copy()
+            data['posted_by'] = request.user.id
+        else:
+            # For JSON
+            data = request.data.copy()
+            data['posted_by'] = request.user.id
+
+        serializer = JobSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        # Return more detailed error information
+        error_details = {}
+        for field, errors in serializer.errors.items():
+            error_details[field] = ', '.join(str(error) for error in errors)
+
+        return Response({
+            'error': 'Validation failed',
+            'details': error_details
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE' and pk:
+        job = get_object_or_404(Job, pk=pk)
+        job.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# Add this function to your api/views.py file
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def hr_toggle_company_status(request, pk):
+    """API to toggle a company's status."""
+    if request.user.user_type != 'hr_admin':
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    from corporate.models import Company
+    company = get_object_or_404(Company, pk=pk)
+    company.status = 'inactive' if company.status == 'active' else 'active'
+    company.save()
+
+    # Use the basic CompanySerializer to return the updated data
+    from .serializers import CompanySerializer
+    serializer = CompanySerializer(company)
+    return Response(serializer.data)
+
+
+# In api/views.py, find and replace these two functions
+
+# In api/views.py, find and replace the hr_candidates function
+
+@api_view(['GET', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def hr_candidates(request, pk=None):
+    """API for viewing and deleting candidates."""
+    if request.user.user_type != 'hr_admin':
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    from accounts.models import User
+    from .serializers import HRCandidateListSerializer, HRCandidateDetailSerializer
+
+    if request.method == 'GET':
+        if pk:
+            candidate = get_object_or_404(User, pk=pk, user_type='candidate')
+            # FIX: Use a try-except block to handle potential missing data
+            try:
+                serializer = HRCandidateDetailSerializer(candidate)
+                return Response(serializer.data)
+            except Exception as e:
+                # Return a simpler response if the detailed one fails
+                return Response({
+                    'id': candidate.id,
+                    'full_name': candidate.get_full_name(),
+                    'email': candidate.email,
+                    'phone': getattr(candidate.candidate_profile, 'phone', 'N/A'),
+                    'current_designation': getattr(candidate.candidate_profile, 'current_designation', 'N/A'),
+                    'date_joined': candidate.date_joined,
+                    'error': f'Could not load full profile: {e}'
+                }, status=status.HTTP_200_OK)
+        else:
+            candidates = User.objects.filter(user_type='candidate').order_by('-date_joined')
+            serializer = HRCandidateListSerializer(candidates, many=True)
+            return Response(serializer.data)
+
+    elif request.method == 'DELETE' and pk:
+        candidate = get_object_or_404(User, pk=pk, user_type='candidate')
+        candidate.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def hr_requisitions(request, pk=None):
+    """API for managing job requisitions."""
+    if request.user.user_type != 'hr_admin':
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    from corporate.models import JobRequisition
+    from jobs.models import Job
+    from .serializers import HRJobRequisitionSerializer
+
+    if request.method == 'GET':
+        if pk:
+            # FIX: Use a try-except block
+            try:
+                requisition = get_object_or_404(JobRequisition, pk=pk)
+                serializer = HRJobRequisitionSerializer(requisition)
+                return Response(serializer.data)
+            except Exception as e:
+                return Response({'error': f'Could not load details: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            requisitions = JobRequisition.objects.all().order_by('-created_at')
+            serializer = HRJobRequisitionSerializer(requisitions, many=True)
+            return Response(serializer.data)
+
+    elif request.method == 'PATCH' and pk:
+        requisition = get_object_or_404(JobRequisition, pk=pk)
+        if 'status' in request.data:
+            requisition.status = request.data['status']
+            if requisition.status == 'approved':
+                # Create a job from the approved requisition
+                Job.objects.create(
+                    title=requisition.job_title,
+                    company_name=requisition.company.name,
+                    location=requisition.location,
+                    job_type=requisition.job_type,
+                    min_experience=requisition.min_experience,
+                    max_experience=requisition.max_experience,
+                    min_salary=requisition.min_salary,
+                    max_salary=requisition.max_salary,
+                    description=requisition.description,
+                    responsibilities='As per company requirements',
+                    requirements=requisition.requirements,
+                    skills_required=requisition.skills_required,
+                    benefits='Standard benefits',
+                    perks='As per company policy',
+                    vacancies=requisition.vacancies,
+                    status='active',
+                    posted_by=request.user
+                )
+        requisition.save()
+        serializer = HRJobRequisitionSerializer(requisition)
+        return Response(serializer.data)
+
+    elif request.method == 'DELETE' and pk:
+        requisition = get_object_or_404(JobRequisition, pk=pk)
+        requisition.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+# In api/views.py, add this new view alongside hr_profile
+
+# In api/views.py, update the hr_profile_update function
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def hr_profile_update(request):
+    """API view to update the logged-in HR admin's profile."""
+    if request.user.user_type != 'hr_admin':
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    user = request.user
+    # Use the same serializer as the GET endpoint
+    from .serializers import UserSerializer
+    serializer = UserSerializer(user, data=request.data, partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# In api/views.py
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_full_employee(request):
+    """
+    Create a user and their associated detailed employee profile.
+    """
+    if request.user.user_type not in ['hr_admin', 'company_admin']:
+        return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+    data = request.data
+
+    # Use a transaction to ensure both objects are created or neither is
+    with transaction.atomic():
+        # 1. Create the User
+        user_data = {
+            'username': data['email'],
+            'email': data['email'],
+            'password': data.get('password', 'temp123'), # Default password
+            'first_name': data.get('first_name', ''),
+            'last_name': data.get('last_name', ''),
+            'user_type': data.get('user_type', 'employee').lower(),
+            'phone': data.get('phone', ''),
+            'company': request.user.company.id, # Assign to creator's company
+        }
+        user = User.objects.create_user(**user_data)
+
+        # 2. Create the EmployeeProfile
+        profile_data = {
+            'user': user.id,
+            'work_location': data.get('work_location'),
+            'work_address': data.get('work_address'),
+            # ... map all other fields from your form to the model ...
+            'department': data.get('department'),
+            'designation': data.get('designation'),
+            'ctc': data.get('ctc'),
+            # etc.
+        }
+        EmployeeProfile.objects.create(**profile_data)
+
+    return Response({'message': 'Employee created successfully', 'user_id': user.id}, status=status.HTTP_201_CREATED)
+
+# In api/views.py
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_full_employee_profile(request, pk):
+    """
+    Get a user's detailed profile including EmployeeProfile data.
+    """
+    try:
+        user = get_object_or_404(User, pk=pk)
+        profile, created = EmployeeProfile.objects.get_or_create(user=user) # Ensure profile exists
+
+        # Combine data into a single dictionary
+        combined_data = {
+            "user": UserSerializer(user).data,
+            "profile": EmployeeProfileForm(profile).data # You may need to create this serializer
+        }
+        return Response(combined_data)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+User = get_user_model()
+
+# In api/views.py, replace the entire CompanyEmployeeViewSet class with this
+
+from django.db import transaction  # Make sure this is imported at the top of the file
+from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
+
+class CompanyEmployeeViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows company admins to manage employees.
+    Handles list, create, retrieve, update, and delete actions.
+    """
+    serializer_class = CompanyEmployeeSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        """
+        Filter employees based on logged-in user's role and company hierarchy.
+        This is primarily for the LIST view.
+        """
+        user = self.request.user
+        if not user or not user.company:
+            return User.objects.none()
+
+        # Company Admins can see all employees in their company except themselves
+        if user.user_type == 'company_admin':
+            return User.objects.filter(company=user.company).exclude(id=user.id)
+
+        # Management can see supervisors and their reports
+        if user.user_type == 'management':
+            supervisors = user.subordinates.filter(user_type='supervisor')
+            employees_of_supervisors = User.objects.filter(manager__in=supervisors)
+            return (supervisors | employees_of_supervisors).distinct()
+
+        # Supervisors can see their direct reports (employees only)
+        if user.user_type == 'supervisor':
+            return user.subordinates.filter(user_type='employee')
+
+        return User.objects.none()
+
+    def get_object(self):
+        """
+        Override get_object to have a different permission check for RETRIEVE view.
+        This allows viewing details if users are in the same company and have general permission.
+        """
+        pk = self.kwargs.get('pk')
+        try:
+            obj = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            raise NotFound("Employee not found.")
+
+        # --- PERMISSION CHECK FOR DETAIL VIEW ---
+        # Must be in the same company.
+        if obj.company != self.request.user.company:
+            raise PermissionDenied("You do not have permission to view this employee.")
+
+        # A user can always view their own profile.
+        if obj.id == self.request.user.id:
+            return obj
+
+        # Company Admin can view anyone.
+        if self.request.user.user_type == 'company_admin':
+            return obj
+
+        # Management can view other Management, Supervisors, and Employees.
+        if self.request.user.user_type == 'management':
+            if obj.user_type in ['management', 'supervisor', 'employee'] and obj.company == self.request.user.company:
+                return obj
+            else:
+                raise PermissionDenied("You do not have permission to view this employee.")
+
+        # Supervisor can view their own Management, other Supervisors, and their Employees.
+        if self.request.user.user_type == 'supervisor':
+            # A supervisor can view their own manager
+            if obj.id == self.request.user.manager.id:
+                return obj
+            # And their direct reports
+            if obj in self.request.user.subordinates.all():
+                return obj
+            else:
+                raise PermissionDenied("You do not have permission to view this employee.")
+
+        # Default deny
+        raise PermissionDenied("You do not have permission to view this employee.")
+
+    def get_permissions(self):
+        """
+        Instantiates and returns a list of permissions that this view requires.
+        """
+        if self.action == 'create':
+            # Only company_admins can create employees
+            self.permission_classes = [IsAuthenticated] if self.request.user.user_type == 'company_admin' else []
+        else:
+            # For other actions (list, retrieve, update, delete), use default
+            self.permission_classes = [IsAuthenticated]
+        return [permission() for permission in self.permission_classes]
+
+    def create(self, request, *args, **kwargs):
+        if request.user.user_type != 'company_admin':
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            data = request.data
+            email = data.get('email', '').strip()
+
+            if not email:
+                return Response({'error': 'Email is a required field.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if User.objects.filter(email__iexact=email).exists():
+                return Response({'error': 'This email address is already in use. Please use a different email.'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            user_data = {
+                'username': email,
+                'email': email,
+                'password': data.get('password', 'temp123'),
+                'first_name': data.get('first_name', ''),
+                'last_name': data.get('last_name', ''),
+                'user_type': data.get('user_type', 'employee').lower(),
+                'phone': data.get('phone', ''),
+            }
+
+            manager_id = data.get('manager')
+            if manager_id:
+                try:
+                    user_data['manager'] = User.objects.get(pk=manager_id)
+                except User.DoesNotExist:
+                    return Response({'error': f'Manager with id {manager_id} not found'},
+                                    status=status.HTTP_400_BAD_REQUEST)
+
+            user = User.objects.create_user(**user_data)
+            user.company = request.user.company
+            user.save()
+
+            profile_data = {}
+            profile_fields = [
+                'work_location', 'work_address', 'work_email', 'work_phone',
+                'gender', 'date_of_birth', 'address', 'personal_phone', 'personal_email',
+                'marital_status', 'father_name', 'mother_name', 'spouse_name',
+                'number_of_children', 'child1_name', 'child2_name',
+                'aadhar_number', 'pan_number', 'uan_number', 'pf_number',
+                'bank_account_number', 'bank_name', 'bank_branch', 'bank_ifsc_code',
+                'education_level', 'field_of_study', 'school_name',
+                'employee_id', 'department', 'designation', 'date_of_joining',
+                'employment_type', 'blood_group', 'ctc'
+            ]
+
+            for key in request.data:
+                if key.startswith('employee_profile.'):
+                    field_name = key.replace('employee_profile.', '')
+                    if field_name in profile_fields:
+                        profile_data[field_name] = request.data.get(key)
+
+            date_fields = ['date_of_birth', 'date_of_joining']
+            for field in date_fields:
+                if field in profile_data and not profile_data[field]:
+                    profile_data[field] = None
+
+            numeric_fields = ['number_of_children', 'ctc']
+            for field in numeric_fields:
+                if field in profile_data and profile_data[field]:
+                    try:
+                        if field == 'ctc':
+                            from decimal import Decimal, InvalidOperation
+                            profile_data[field] = Decimal(profile_data[field])
+                        else:
+                            profile_data[field] = int(profile_data[field])
+                    except (ValueError, TypeError, InvalidOperation):
+                        profile_data[field] = None
+
+            try:
+                EmployeeProfile.objects.update_or_create(user=user, defaults=profile_data)
+            except Exception as e:
+                user.delete()
+                print(f"Error creating employee profile: {e}")
+                return Response({'error': f'Error creating employee profile: {str(e)}'},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            serializer = self.get_serializer(user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except IntegrityError:
+            return Response({'error': 'This email address is already in use. Please use a different email.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            print(f"Unexpected error in create method: {e}")
+            return Response({'error': f'An unexpected error occurred: {str(e)}'},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # In api/views.py, inside the CompanyEmployeeViewSet class
+
+    def update(self, request, *args, **kwargs):
+        """
+        Override the default update method to handle the nested payload from the frontend
+        with proper data type validation.
+        """
+        instance = self.get_object()
+
+        # The frontend sends data in a nested format
+        user_data = request.data.get('user', {})
+        profile_data = request.data.get('employee_profile', {})
+
+        # --- Update User fields ---
+        # Handle the fragile name splitting from the frontend
+        full_name = user_data.get('first_name', '')  # Frontend puts full name here
+        name_parts = full_name.split(' ')
+        instance.first_name = name_parts[0]
+        instance.last_name = ' '.join(name_parts[1:])
+
+        instance.email = user_data.get('email', instance.email)
+        instance.phone = user_data.get('phone', instance.phone)
+        instance.save()
+
+        # --- Update Profile fields with robust type casting ---
+        profile, created = EmployeeProfile.objects.get_or_create(user=instance)
+
+        # List of fields that are numbers and need conversion
+        numeric_fields = ['number_of_children', 'ctc']
+        for field in numeric_fields:
+            if field in profile_data and profile_data[field]:
+                try:
+                    if field == 'ctc':
+                        from decimal import Decimal, InvalidOperation
+                        setattr(profile, field, Decimal(profile_data[field]))
+                    else:
+                        setattr(profile, field, int(profile_data[field]))
+                except (ValueError, TypeError, InvalidOperation):
+                    # If conversion fails, don't update the field
+                    pass
+
+        # List of fields that are dates and need conversion
+        date_fields = ['date_of_birth', 'date_of_joining']
+        for field in date_fields:
+            if field in profile_data and profile_data[field]:
+                try:
+                    from datetime import datetime
+                    setattr(profile, field, datetime.strptime(profile_data[field], '%Y-%m-%d').date())
+                except (ValueError, TypeError):
+                    # If conversion fails, don't update the field
+                    pass
+
+        # List of text fields that can be updated directly
+        text_fields = [
+            'work_location', 'work_address', 'work_email', 'work_phone',
+            'gender', 'personal_address', 'personal_phone', 'personal_email',
+            'marital_status', 'father_name', 'mother_name', 'spouse_name',
+            'child1_name', 'child2_name', 'aadhar_number', 'pan_number',
+            'uan_number', 'pf_number', 'bank_account_number', 'bank_name',
+            'bank_branch', 'bank_ifsc_code', 'education_level', 'field_of_study',
+            'school_name', 'employee_id', 'department', 'designation',
+            'employment_type', 'blood_group'
+        ]
+        for field in text_fields:
+            if field in profile_data:
+                setattr(profile, field, profile_data[field])
+
+        profile.save()
+
+        # Return the updated instance
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    # def update(self, request, *args, **kwargs):
+    #     """
+    #     Override the default update method to handle the nested payload from the frontend.
+    #     """
+    #     # Check permissions first
+    #     instance = self.get_object()
+    #     if not instance:
+    #          return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+    #
+    #     # The frontend sends data in a nested format
+    #     user_data = request.data.get('user', {})
+    #     profile_data = request.data.get('employee_profile', {})
+    #
+    #     # Update user fields
+    #     instance.first_name = user_data.get('first_name', instance.first_name)
+    #     instance.last_name = user_data.get('last_name', instance.last_name)
+    #     instance.email = user_data.get('email', instance.email)
+    #     instance.phone = user_data.get('phone', instance.phone)
+    #     instance.save()
+    #
+    #     # Update profile fields
+    #     profile, created = EmployeeProfile.objects.get_or_create(user=instance)
+    #     for key, value in profile_data.items():
+    #         setattr(profile, key, value)
+    #     profile.save()
+    #
+    #     # Return the updated instance
+    #     serializer = self.get_serializer(instance)
+    #     return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Only allow company_admin to delete users.
+        """
+        if request.user.user_type != 'company_admin':
+            raise PermissionDenied("Only a Company Admin can delete employees.")
+        return super().destroy(request, *args, **kwargs)
+
+
+
+# class CompanyEmployeeViewSet(viewsets.ModelViewSet):
+#     """
+#     API endpoint that allows company admins to manage employees.
+#     Handles list, create, retrieve, update, and delete actions.
+#     """
+#     serializer_class = CompanyEmployeeSerializer
+#     permission_classes = [IsAuthenticated]
+#     pagination_class = None
+#
+#     def get_queryset(self):
+#         """
+#         Filter employees based on logged-in user's role and company hierarchy.
+#         This is primarily for the LIST view.
+#         """
+#         user = self.request.user
+#         if not user or not user.company:
+#             return User.objects.none()
+#
+#         # Company Admins can see all employees in their company except themselves
+#         if user.user_type == 'company_admin':
+#             return User.objects.filter(company=user.company).exclude(id=user.id)
+#
+#         # Management can see supervisors and their reports
+#         if user.user_type == 'management':
+#             supervisors = user.subordinates.filter(user_type='supervisor')
+#             employees_of_supervisors = User.objects.filter(manager__in=supervisors)
+#             return (supervisors | employees_of_supervisors).distinct()
+#
+#         # Supervisors can see their direct reports (employees only)
+#         if user.user_type == 'supervisor':
+#             return user.subordinates.filter(user_type='employee')
+#
+#         return User.objects.none()
+#
+#     def get_object(self):
+#         """
+#         Override get_object to have a different permission check for RETRIEVE view.
+#         This allows viewing details if users are in the same company and have general permission.
+#         """
+#         pk = self.kwargs.get('pk')
+#         try:
+#             obj = User.objects.get(pk=pk)
+#         except User.DoesNotExist:
+#             raise NotFound("Employee not found.")
+#
+#         # --- PERMISSION CHECK FOR DETAIL VIEW ---
+#         # Must be in the same company.
+#         if obj.company != self.request.user.company:
+#             raise PermissionDenied("You do not have permission to view this employee.")
+#
+#         # A user can always view their own profile.
+#         if obj.id == self.request.user.id:
+#             return obj
+#
+#         # Company Admin can view anyone.
+#         if self.request.user.user_type == 'company_admin':
+#             return obj
+#
+#         # Management can view other Management, Supervisors, and Employees.
+#         if self.request.user.user_type == 'management':
+#             if obj.user_type in ['management', 'supervisor', 'employee']:
+#                 return obj
+#             else:
+#                 raise PermissionDenied("You do not have permission to view this employee.")
+#
+#         # Supervisors can view their own Management, other Supervisors, and their Employees.
+#         if self.request.user.user_type == 'supervisor':
+#             # A supervisor can view their own manager
+#             if obj.id == self.request.user.manager.id:
+#                 return obj
+#             # And their direct reports
+#             if obj in self.request.user.subordinates.all():
+#                 return obj
+#             else:
+#                 raise PermissionDenied("You do not have permission to view this employee.")
+#
+#         # Default deny
+#         raise PermissionDenied("You do not have permission to view this employee.")
+#
+#     def get_permissions(self):
+#         """
+#         Instantiates and returns the list of permissions that this view requires.
+#         """
+#         if self.action == 'create':
+#             # Only company_admins can create employees
+#             self.permission_classes = [IsAuthenticated] if self.request.user.user_type == 'company_admin' else []
+#         else:
+#             # For other actions (list, retrieve, update, delete), use default
+#             self.permission_classes = [IsAuthenticated]
+#         return [permission() for permission in self.permission_classes]
+#
+#         # In api/views.py, inside the CompanyEmployeeViewSet class
+#
+#     def create(self, request, *args, **kwargs):
+#         """
+#         Override create to handle both JSON and FormData payloads.
+#         """
+#         # Check if user has permission to create employees
+#         if request.user.user_type != 'company_admin':
+#             return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+#
+#         try:
+#             # --- Handle JSON data (from your frontend) ---
+#             if request.content_type == 'application/json':
+#                 data = request.data
+#
+#                 # Check if email already exists
+#                 if User.objects.filter(email=data.get('email')).exists():
+#                     return Response({'error': 'Email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+#
+#                 # Extract user data
+#                 user_data = {
+#                     'username': data.get('email'),
+#                     'email': data.get('email'),
+#                     'password': data.get('password', 'temp123'),
+#                     'first_name': data.get('first_name', ''),
+#                     'last_name': data.get('last_name', ''),
+#                     'user_type': data.get('user_type', 'employee').lower(),
+#                     'phone': data.get('phone', ''),
+#                 }
+#
+#                 # Get manager if specified
+#                 manager_id = data.get('manager')
+#                 if manager_id:
+#                     try:
+#                         user_data['manager'] = User.objects.get(pk=manager_id)
+#                     except User.DoesNotExist:
+#                         return Response({'error': f'Manager with id {manager_id} not found'},
+#                                         status=status.HTTP_400_BAD_REQUEST)
+#
+#                 # Create user
+#                 user = User.objects.create_user(**user_data)
+#                 user.company = request.user.company
+#                 user.save()
+#
+#                 # Prepare profile data by filtering out user-specific fields
+#                 profile_data = {}
+#                 # List of fields that belong to the EmployeeProfile model
+#                 profile_fields = [
+#                     'work_location', 'work_address', 'work_email', 'work_phone',
+#                     'gender', 'date_of_birth', 'address', 'personal_phone', 'personal_email',
+#                     'marital_status', 'father_name', 'mother_name', 'spouse_name',
+#                     'number_of_children', 'child1_name', 'child2_name',
+#                     'aadhar_number', 'pan_number', 'uan_number', 'pf_number',
+#                     'bank_account_number', 'bank_name', 'bank_branch', 'bank_ifsc_code',
+#                     'employee_id', 'department', 'designation', 'date_of_joining',
+#                     'employment_type', 'blood_group', 'ctc'
+#                 ]
+#
+#                 for field in profile_fields:
+#                     if field in data:
+#                         profile_data[field] = data.get(field)
+#
+#                 # Handle date fields specifically, as they might be empty strings
+#                 date_fields = ['date_of_birth', 'date_of_joining']
+#                 for field in date_fields:
+#                     if field in profile_data and not profile_data[field]:
+#                         profile_data[field] = None
+#
+#                 # Handle numeric fields specifically
+#                 numeric_fields = ['number_of_children', 'ctc']
+#                 for field in numeric_fields:
+#                     if field in profile_data and profile_data[field]:
+#                         try:
+#                             if field == 'ctc':
+#                                 profile_data[field] = Decimal(profile_data[field])
+#                             else:
+#                                 profile_data[field] = int(profile_data[field])
+#                         except (ValueError, TypeError, InvalidOperation):
+#                             profile_data[field] = None  # Or 0 for number_of_children
+#
+#                 try:
+#                     EmployeeProfile.objects.update_or_create(user=user, defaults=profile_data)
+#                 except Exception as e:
+#                     # If profile creation fails, delete the user to maintain data integrity
+#                     user.delete()
+#                     # Log the actual error for debugging
+#                     print(f"Error creating employee profile: {e}")
+#                     # Re-raise a more user-friendly exception
+#                     return Response({'error': f'Error creating employee profile: {str(e)}'},
+#                                     status=status.HTTP_400_BAD_REQUEST)
+#
+#                 # Serialize and return the created user
+#                 serializer = self.get_serializer(user)
+#                 return Response(serializer.data, status=status.HTTP_201_CREATED)
+#
+#             # --- Handle FormData (for future file uploads) ---
+#             elif request.content_type and 'multipart/form-data' in request.content_type:
+#                 # This part of the code remains the same as your original version
+#                 # ... (your existing FormData handling code) ...
+#                 pass  # Placeholder for your existing code
+#
+#             else:
+#                 return Response({'error': 'Unsupported content type'}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         except Exception as e:
+#             # Catch-all for any other unexpected errors
+#             print(f"Unexpected error in create method: {e}")
+#             return Response({'error': f'An unexpected error occurred: {str(e)}'},
+#                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#
+#     def perform_create(self, serializer):
+#         """
+#         Create a new user and their associated employee profile.
+#         """
+#         # The viewset's save() method creates the user. `serializer.instance` is the new user.
+#         user = serializer.instance
+#
+#         # The frontend sends profile data in a nested format
+#         profile_data = {}
+#
+#         # Extract profile data from FormData
+#         for key in self.request.data:
+#             if key.startswith('employee_profile.'):
+#                 profile_key = key.replace('employee_profile.', '')
+#                 profile_data[profile_key] = self.request.data[key]
+#
+#         try:
+#             # Use update_or_create to be safe
+#             profile = EmployeeProfile.objects.update_or_create(user=user, defaults=profile_data)
+#             # IMPORTANT: Return the created profile object
+#             return profile
+#         except Exception as e:
+#             # If profile creation fails, delete the user to maintain data integrity
+#             user.delete()
+#             # Re-raise the exception to return a proper 500 error response
+#             raise ValidationError(f"Error creating employee profile: {e}")
+#
+#
+#     def perform_update(self, serializer):
+#         """
+#         Update an employee's user and profile details.
+#         """
+#         user = serializer.instance
+#
+#         # --- FIX: Get user data from the nested 'user' object ---
+#         user_data = self.request.data.get('user', {})
+#         user.first_name = user_data.get('first_name', user.first_name)
+#         user.last_name = user_data.get('last_name', user.last_name)
+#         user.email = user_data.get('email', user.email)
+#         user.phone = user_data.get('phone', user.phone)
+#         user.save()
+#
+#         # Get profile data from the nested 'employee_profile' object
+#         profile_data = self.request.data.get('employee_profile', {})
+#
+#         # Update profile fields
+#         profile, created = EmployeeProfile.objects.get_or_create(user=user)
+#         for key, value in profile_data.items():
+#             setattr(profile, key, value)
+#         profile.save()
+#
+#     def destroy(self, request, *args, **kwargs):
+#         """
+#         Only allow company_admin to delete users.
+#         """
+#         if request.user.user_type != 'company_admin':
+#             raise PermissionDenied("Only a Company Admin can delete employees.")
+#         return super().destroy(request, *args, **kwargs)
+
+
+
+
+# In api/views.py
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def employee_comments(request, employee_id):
+    """
+    API to get or add comments for a specific employee.
+    """
+    try:
+        employee = User.objects.get(pk=employee_id, company=request.user.company)
+    except User.DoesNotExist:
+        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        comments = EmployeeComment.objects.filter(employee=employee).order_by('-created_at')
+        serializer = EmployeeCommentSerializer(comments, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # --- FIX 1: Add 'hr_admin' to the list of allowed user types ---
+        if request.user.user_type not in ['hr_admin', 'company_admin', 'management', 'supervisor']:
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        # --- FIX 2: Use the correct key 'comment' instead of 'text' ---
+        comment = EmployeeComment.objects.create(
+            employee=employee,
+            commented_by=request.user,
+            comment=request.data.get('comment', ''),  # Changed from 'text' to 'comment'
+            rating=request.data.get('rating')
+        )
+
+        # Serialize and return the created comment
+        serializer = EmployeeCommentSerializer(comment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def current_employee_profile_api(request):
+    """API for current user's employee profile"""
+    from corporate.models import EmployeeProfile
+
+    # Get or create employee profile for current user
+    profile, created = EmployeeProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'GET':
+        # Create a custom response with all needed fields
+        response_data = {
+            'user': {
+                'id': request.user.id,
+                'username': request.user.username,
+                'email': request.user.email,
+                'first_name': request.user.first_name,
+                'last_name': request.user.last_name,
+                'user_type': request.user.user_type,
+                'phone': request.user.phone,
+            },
+            'employee_profile': {
+                'employee_id': profile.employee_id or '',
+                'department': profile.department or '',
+                'designation': profile.designation or '',
+                'date_of_joining': profile.date_of_joining.strftime('%Y-%m-%d') if profile.date_of_joining else '',
+                'employment_type': profile.employment_type or '',
+                'work_location': profile.work_location or '',
+                'work_address': profile.work_address or '',
+                'work_email': profile.work_email or '',
+                'work_phone': profile.work_phone or '',
+                'personal_email': profile.personal_email or '',
+                'personal_phone': profile.personal_phone or '',
+                'personal_address': profile.personal_address or '',
+                'date_of_birth': profile.date_of_birth.strftime('%Y-%m-%d') if profile.date_of_birth else '',
+                'gender': profile.gender or '',
+                'blood_group': profile.blood_group or '',
+                'pan_number': profile.pan_number or '',
+                'aadhar_number': profile.aadhar_number or '',
+                'uan_number': profile.uan_number or '',
+                'pf_number': profile.pf_number or '',
+                'bank_account_number': profile.bank_account_number or '',
+                'bank_name': profile.bank_name or '',
+                'bank_branch': profile.bank_branch or '',
+                'bank_ifsc_code': profile.bank_ifsc_code or '',
+                'ctc': str(profile.ctc) if profile.ctc else '',
+                'father_name': profile.father_name or '',
+                'mother_name': profile.mother_name or '',
+                'marital_status': profile.marital_status or '',
+                'spouse_name': profile.spouse_name or '',
+                'number_of_children': str(profile.number_of_children) if profile.number_of_children else '0',
+                'manager_name': request.user.manager.get_full_name() if request.user.manager else '',
+            }
+        }
+        return Response(response_data)
+
+    elif request.method == 'PATCH':
+        try:
+            # Update user fields if provided
+            if 'first_name' in request.data:
+                request.user.first_name = request.data['first_name']
+            if 'last_name' in request.data:
+                request.user.last_name = request.data['last_name']
+            if 'email' in request.data:
+                request.user.email = request.data['email']
+            if 'phone' in request.data:
+                request.user.phone = request.data['phone']
+            request.user.save()
+
+            # Update profile fields if provided
+            profile_fields = [
+                'employee_id', 'department', 'designation', 'date_of_joining', 'employment_type',
+                'work_location', 'work_address', 'work_email', 'work_phone',
+                'personal_email', 'personal_phone', 'personal_address', 'date_of_birth',
+                'gender', 'blood_group', 'pan_number', 'aadhar_number', 'uan_number',
+                'pf_number', 'bank_account_number', 'bank_name', 'bank_branch',
+                'bank_ifsc_code', 'ctc', 'father_name', 'mother_name',
+                'marital_status', 'spouse_name', 'number_of_children'
+            ]
+
+            for field in profile_fields:
+                if field in request.data:
+                    # Handle date fields specifically
+                    if field in ['date_of_birth', 'date_of_joining'] and request.data[field]:
+                        try:
+                            from datetime import datetime
+                            profile.__setattr__(field, datetime.strptime(request.data[field], '%Y-%m-%d').date())
+                        except ValueError:
+                            pass  # Keep the original value if parsing fails
+                    # Handle numeric fields specifically
+                    elif field == 'ctc' and request.data[field]:
+                        try:
+                            profile.__setattr__(field, float(request.data[field]))
+                        except ValueError:
+                            pass  # Keep the original value if parsing fails
+                    elif field == 'number_of_children' and request.data[field]:
+                        try:
+                            profile.__setattr__(field, int(request.data[field]))
+                        except ValueError:
+                            pass  # Keep the original value if parsing fails
+                    else:
+                        profile.__setattr__(field, request.data[field])
+
+            profile.save()
+
+            return Response({'message': 'Profile updated successfully'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+#         return Response(updated_response_data)
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def employee_comments_api(request, employee_id):
+    """
+    API to get or add comments for a specific employee.
+    """
+    try:
+        employee = User.objects.get(pk=employee_id)
+        # Check if user has permission to view/add comments
+        if not has_comment_permission(request.user, employee):
+            return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
+    except User.DoesNotExist:
+        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        comments = EmployeeComment.objects.filter(employee=employee).order_by('-created_at')
+        serializer = EmployeeCommentSerializer(comments, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        # Create comment
+        comment = EmployeeComment.objects.create(
+            employee=employee,
+            commented_by=request.user,
+            comment=request.data.get('comment', ''),
+            rating=request.data.get('rating')
+        )
+
+        # Serialize and return the created comment
+        serializer = EmployeeCommentSerializer(comment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+def has_comment_permission(user, employee):
+    """Check if user has permission to comment on employee"""
+    # User can always comment on their own profile
+    if user.id == employee.id:
+        return True
+
+    # HR Admin can comment on anyone
+    if user.user_type == 'hr_admin':
+        return True
+
+    # Company Admin can comment on anyone in their company
+    if user.user_type == 'company_admin' and employee.company == user.company:
+        return True
+
+    # Management can comment on supervisors and employees
+    if user.user_type == 'management':
+        if employee.user_type in ['supervisor', 'employee'] and employee.company == user.company:
+            return True
+
+    # Supervisor can comment on their direct reports
+    if user.user_type == 'supervisor':
+        if employee.user_type == 'employee' and employee.manager == user:
+            return True
+
+    return False
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def current_user_employee_profile_api(request):
+    """
+    API view for the logged-in user's employee profile.
+    Handles GET (retrieve) and PATCH (update) requests.
+    """
+    from corporate.models import EmployeeProfile
+    from .serializers import EmployeeProfileSerializer, UserSerializer
+
+    try:
+        # Get or create employee profile for current user
+        profile, created = EmployeeProfile.objects.get_or_create(user=request.user)
+
+        if request.method == 'GET':
+            # Create a comprehensive response with user data and profile data
+            user_serializer = UserSerializer(request.user)
+            profile_serializer = EmployeeProfileSerializer(profile)
+
+            # Combine the data
+            response_data = {
+                'user': user_serializer.data,
+                'employee_profile': profile_serializer.data
+            }
+
+            return Response(response_data)
+
+        elif request.method == 'PATCH':
+            # The frontend sends data as a flat object of field-value pairs
+            # not nested under 'employee_profile'
+            data = request.data
+
+            # Log the received data for debugging
+            print(f"PATCH data received: {data}")
+
+            # Use the serializer to validate and update the profile
+            serializer = EmployeeProfileSerializer(profile, data=data, partial=True)
+
+            if serializer.is_valid():
+                # Save the updated profile
+                updated_profile = serializer.save()
+                print(f"Profile updated successfully: {updated_profile}")
+
+                # Return the updated profile data
+                return Response({
+                    'message': 'Profile updated successfully',
+                    'employee_profile': serializer.data
+                })
+            else:
+                # Log validation errors for debugging
+                print(f"Serializer errors: {serializer.errors}")
+                return Response({
+                    'error': 'Validation failed',
+                    'details': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+    except Exception as e:
+        # Log any unexpected errors
+        print(f"Unexpected error in current_user_employee_profile_api: {str(e)}")
+        return Response({
+            'error': 'An unexpected error occurred',
+            'details': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# @api_view(['GET', 'PATCH'])
+# @permission_classes([IsAuthenticated])
+# def current_user_employee_profile_api(request):
+#     """
+#     API view for the logged-in user's employee profile.
+#     Handles GET (retrieve) and PATCH (update) requests.
+#     """
+#     profile, created = EmployeeProfile.objects.get_or_create(user=request.user)
+#
+#     if request.method == 'GET':
+#         # Return the user's profile data
+#         serializer = EmployeeProfileSerializer(profile)
+#         return Response(serializer.data)
+#
+#     elif request.method == 'PATCH':
+#         # Update the user's profile data
+#         # The frontend sends data wrapped in 'employee_profile'
+#         data = request.data.get('employee_profile', {})
+#         serializer = EmployeeProfileSerializer(profile, data=data, partial=True)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         # Return detailed error messages if validation fails
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def employee_profile_api(request):
+    """API view for logged-in employee's profile."""
+    try:
+        # Get or create employee profile
+        profile, created = EmployeeProfile.objects.get_or_create(user=request.user)
+
+        if request.method == 'GET':
+            serializer = EmployeeProfileSerializer(profile)
+            return Response(serializer.data)
+
+        elif request.method in ['PUT', 'PATCH']:
+            # Handle file uploads separately
+            if request.content_type.startswith('multipart/form-data'):
+                if 'avatar' in request.FILES:
+                    profile.avatar = request.FILES['avatar']
+                if 'resume' in request.FILES:
+                    profile.resume = request.FILES['resume']
+                profile.save()
+                return Response({'message': 'Files uploaded successfully'})
+            else:
+                # Handle regular JSON data
+                serializer = EmployeeProfileSerializer(profile, data=request.data, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(serializer.data)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR) this is updated views.py/api

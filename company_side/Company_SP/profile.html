@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile — NEO TECH Solutions</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  /* ===== Root Variables ===== */
+  :root {
+    --bg:#f6f7f8;
+    --card:#ffffff;
+    --text:#22303b;
+    --muted:#6f7b83;
+    --darkgreen:#00533f;
+    --lightgreen:#8fd694;
+    --yellow:#ffcc00;
+    --red:#ff6347;
+    --radius:12px;
+    --shadow:0 6px 20px rgba(0,0,0,0.06);
+    --transition: all 0.3s ease;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* ===== Top Navigation ===== */
+  .topbar{
+    background: var(--darkgreen);
+    color:#fff;
+    position:sticky; top:0; z-index:10;
+    box-shadow:0 4px 14px rgba(0,0,0,0.1);
+  }
+  .topbar-inner{
+    max-width:1400px;
+    margin:auto;
+    padding:14px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand img{width:40px;border-radius:6px;}
+  .brand span{font-size:1.2rem;font-weight:700;}
+  .main-nav{display:flex;gap:20px;}
+  .nav-link{
+    color:#fff;text-decoration:none;font-weight:500;position:relative;
+    transition:var(--transition);padding:6px 0;
+  }
+  .nav-link::after{
+    content:"";position:absolute;left:0;bottom:-3px;width:0;height:2px;
+    background:var(--yellow);border-radius:2px;transition:var(--transition);
+  }
+  .nav-link:hover::after, .nav-link.active::after{width:100%;}
+  .nav-link:hover{opacity:0.9;}
+  .avatar{
+    width:38px;height:38px;background:rgba(255,255,255,0.15);
+    display:flex; align-items:center; justify-content:center;
+    border-radius:8px;font-weight:700;cursor:pointer;
+    transition:var(--transition);
+  }
+  .avatar:hover{background:rgba(255,255,255,0.25);}
+
+  /* ===== Container ===== */
+  .container{max-width:1400px;margin:28px auto;padding:0 20px;padding-bottom:100px;}
+
+  /* ===== Profile Header ===== */
+  .profile-header {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 30px;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--lightgreen);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--darkgreen);
+    flex-shrink: 0;
+  }
+  .profile-info {
+    flex: 1;
+  }
+  .profile-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--darkgreen);
+    margin-bottom: 5px;
+  }
+  .profile-role {
+    font-size: 18px;
+    color: var(--muted);
+    margin-bottom: 15px;
+  }
+  .profile-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .profile-detail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-icon {
+    color: var(--darkgreen);
+  }
+
+  /* ===== Profile Sections ===== */
+  .profile-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 30px;
+  }
+  .profile-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 25px;
+  }
+  .section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--darkgreen);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+  }
+  .info-item {
+    display: flex;
+    flex-direction: column;
+  }
+  .info-label {
+    font-weight: 600;
+    color: var(--darkgreen);
+    margin-bottom: 5px;
+    font-size: 14px;
+  }
+  .info-value {
+    padding: 8px 12px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    transition: var(--transition);
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+  .info-value.editing {
+    border-color: var(--darkgreen);
+    box-shadow: 0 0 0 2px rgba(0, 83, 63, 0.2);
+    background: #fff;
+  }
+  .info-value input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    color: inherit;
+    outline: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* ===== Edit Buttons ===== */
+  .edit-buttons {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    gap: 15px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    border-radius: 50px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+  }
+  .edit-btn, .save-btn, .cancel-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .edit-btn {
+    background: var(--darkgreen);
+    color: white;
+  }
+  .edit-btn:hover {
+    background: var(--lightgreen);
+    transform: scale(1.1);
+  }
+  .save-btn {
+    background: #28a745;
+    color: white;
+  }
+  .save-btn:hover {
+    background: #218838;
+    transform: scale(1.1);
+  }
+  .cancel-btn {
+    background: #dc3545;
+    color: white;
+  }
+  .cancel-btn:hover {
+    background: #c82333;
+    transform: scale(1.1);
+  }
+
+  /* ===== Profile Dropdown ===== */
+  .profile-dropdown{
+    position:absolute;
+    top:60px;
+    right:20px;
+    width:220px;
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    display:none;
+    flex-direction:column;
+    padding:12px;
+    z-index:100;
+  }
+  .profile-header-dropdown{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+    padding-bottom:12px;
+    border-bottom:1px solid #eee;
+  }
+  .profile-header-dropdown img{
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    object-fit:cover;
+    border:2px solid var(--darkgreen);
+  }
+  .profile-header-dropdown strong{
+    font-size:14px;
+    color:var(--darkgreen);
+  }
+  .profile-header-dropdown div{
+    font-size:12px;
+    color:var(--muted);
+  }
+  .profile-actions .btn{
+    width:100%;
+    margin-bottom:6px;
+    font-size:13px;
+    justify-content:center;
+  }
+  .btn {
+    background:#fff;border:1px solid var(--darkgreen);
+    color:var(--darkgreen);padding:10px 16px;border-radius:8px;font-weight:600;
+    cursor:pointer; transition:var(--transition);
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .btn:hover{background:var(--darkgreen); color:#fff;transform: translateY(-2px);}
+  .btn.primary{background:var(--darkgreen);color:#fff;border:none;}
+  .btn.small{padding:6px 10px;font-size:13px;}
+  .btn.ghost{background:transparent;border:1px solid #ccc;color:var(--text);}
+
+  /* ===== Debug Info ===== */
+  .debug-info {
+    position: fixed;
+    top: 100px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    z-index: 9999;
+    display: none;
+  }
+
+  /* ===== Responsive ===== */
+  @media(max-width:768px){
+    .main-nav{display:none}
+    .profile-header {
+      flex-direction: column;
+      text-align: center;
+    }
+    .profile-sections {
+      grid-template-columns: 1fr;
+    }
+    .edit-buttons {
+      bottom: 20px;
+      right: 20px;
+      gap: 10px;
+      padding: 10px;
+    }
+    .edit-btn, .save-btn, .cancel-btn {
+      width: 45px;
+      height: 45px;
+      font-size: 16px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Debug Info -->
+<div class="debug-info" id="debug-info">
+  Edit Mode: <span id="debug-edit-mode">false</span>
+</div>
+
+<!-- Topbar -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <img src="./company_logo.jpg" alt="Logo">
+      <span>NEO TECH Solutions</span>
+    </div>
+    <nav class="main-nav">
+      <a href="./dashboard.html" class="nav-link" data-page="dashboard">Dashboard</a>
+      <a href="./employee.html" class="nav-link" data-page="employees">Employees</a>
+      <a href="./requsition.html" class="nav-link" data-page="requisitions">Requisitions</a>
+      <a href="./company_profile.html" class="nav-link" data-page="company">Company Profile</a>
+      <a href="./profile.html" class="nav-link active" data-page="profile">My Profile</a>
+    </nav>
+    <div class="avatar" id="user-avatar"></div>
+  </div>
+</header>
+
+<!-- Profile Dropdown -->
+<div class="profile-dropdown" id="profile-dropdown">
+  <div class="profile-header-dropdown">
+    <img src="https://picsum.photos/seed/profile/50/50.jpg" alt="Profile Image" id="profile-img">
+    <div>
+      <strong id="profile-name">User</strong>
+      <div id="profile-role">Role</div>
+    </div>
+  </div>
+  <div class="profile-actions">
+    <button class="btn small primary" id="edit-profile-btn">Edit Profile</button>
+    <button class="btn small ghost" id="logout-btn">Logout</button>
+  </div>
+</div>
+
+<main class="container">
+
+  <!-- Profile Header -->
+  <div class="profile-header">
+    <div class="profile-avatar" id="profile-avatar-large">U</div>
+    <div class="profile-info">
+      <h1 class="profile-name" id="profile-name-large">User Name</h1>
+      <div class="profile-role" id="profile-role-large">Role</div>
+      <div class="profile-details">
+        <div class="profile-detail">
+          <i class="fas fa-envelope detail-icon"></i>
+          <span id="profile-email-large">email@example.com</span>
+        </div>
+        <div class="profile-detail">
+          <i class="fas fa-phone detail-icon"></i>
+          <span id="profile-phone-large">Phone Number</span>
+        </div>
+        <div class="profile-detail">
+          <i class="fas fa-map-marker-alt detail-icon"></i>
+          <span id="profile-location-large">Location</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Sections -->
+  <div class="profile-sections">
+    <!-- Work Information -->
+    <div class="profile-section">
+      <h2 class="section-title">
+        <i class="fas fa-briefcase"></i> Work Information
+      </h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Employee ID</div>
+          <div class="info-value" id="info-empId" data-field="empId">EMP001</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Department</div>
+          <div class="info-value" id="info-department" data-field="department">Engineering</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Designation</div>
+          <div class="info-value" id="info-designation" data-field="role">Software Developer</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Manager</div>
+          <div class="info-value" id="info-manager" data-field="manager">John Doe</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Date of Joining</div>
+          <div class="info-value" id="info-doj" data-field="doj">2020-01-15</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Employment Type</div>
+          <div class="info-value" id="info-empType" data-field="empType">Full-time</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Work Location</div>
+          <div class="info-value" id="info-workLocation" data-field="location">New York</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Work Email</div>
+          <div class="info-value" id="info-workEmail" data-field="email">work@example.com</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Personal Information -->
+    <div class="profile-section">
+      <h2 class="section-title">
+        <i class="fas fa-user"></i> Personal Information
+      </h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Personal Email</div>
+          <div class="info-value" id="info-personalEmail" data-field="personalEmail">personal@example.com</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Phone Number</div>
+          <div class="info-value" id="info-phone" data-field="phone">+1 (555) 123-4567</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Address</div>
+          <div class="info-value" id="info-address" data-field="address">123 Main St, City, State</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Date of Birth</div>
+          <div class="info-value" id="info-dob" data-field="dob">1990-01-01</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Gender</div>
+          <div class="info-value" id="info-gender" data-field="gender">Male</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Blood Group</div>
+          <div class="info-value" id="info-bloodGroup" data-field="bloodGroup">O+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HR Information -->
+    <div class="profile-section">
+      <h2 class="section-title">
+        <i class="fas fa-file-alt"></i> HR Information
+      </h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">PAN Number</div>
+          <div class="info-value" id="info-pan" data-field="pan">ABCDE1234F</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Aadhar Number</div>
+          <div class="info-value" id="info-aadhar" data-field="aadhar">XXXX-XXXX-7890</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">UAN Number</div>
+          <div class="info-value" id="info-uan" data-field="uan">100245678910</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">PF Number</div>
+          <div class="info-value" id="info-pf" data-field="pf">BNG12345</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Bank Account</div>
+          <div class="info-value" id="info-bankAccount" data-field="bankAccount">1234567890</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Bank IFSC</div>
+          <div class="info-value" id="info-ifsc" data-field="ifsc">HDFC0001234</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">CTC</div>
+          <div class="info-value" id="info-ctc" data-field="ctc">$80,000</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Family Information -->
+    <div class="profile-section">
+      <h2 class="section-title">
+        <i class="fas fa-users"></i> Family Information
+      </h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Father's Name</div>
+          <div class="info-value" id="info-fatherName" data-field="father">Father Name</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Mother's Name</div>
+          <div class="info-value" id="info-motherName" data-field="mother">Mother Name</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Marital Status</div>
+          <div class="info-value" id="info-maritalStatus" data-field="marital">Single</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Spouse's Name</div>
+          <div class="info-value" id="info-spouseName" data-field="spouse">N/A</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Number of Children</div>
+          <div class="info-value" id="info-children" data-field="children">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Edit Buttons -->
+<div class="edit-buttons" id="edit-buttons">
+  <button class="edit-btn" id="edit-profile-btn-main" title="Edit Profile">
+    <i class="fas fa-edit"></i>
+  </button>
+  <button class="save-btn" id="save-profile-btn" style="display: none;" title="Save Changes">
+    <i class="fas fa-save"></i>
+  </button>
+  <button class="cancel-btn" id="cancel-profile-btn" style="display: none;" title="Cancel Changes">
+    <i class="fas fa-times"></i>
+  </button>
+</div>
+<script>
+  let currentUser = {};
+  let employeeProfile = {};
+  let isEditMode = false;
+  let originalProfileData = {};
+
+  async function apiCall(endpoint, options = {}) {
+      const url = `http://127.0.0.1:8000/api${endpoint}`;
+      const token = sessionStorage.getItem('authToken');
+
+      const defaultHeaders = {
+          'Authorization': `Token ${token}`
+      };
+
+      if (options.body && options.body instanceof FormData) {
+      } else {
+          defaultHeaders['Content-Type'] = 'application/json';
+      }
+
+      const config = {
+          headers: defaultHeaders,
+          ...options
+      };
+
+      try {
+          const response = await fetch(url, config);
+          
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('text/html')) {
+              const htmlText = await response.text();
+              console.error('Server returned HTML instead of JSON:', htmlText);
+              throw new Error('Server returned an error page instead of JSON response');
+          }
+          
+          const data = await response.json();
+
+          if (!response.ok) {
+              console.error('API Error:', data);
+              alert(`Error: ${data.detail || data.error || 'An unknown error occurred.'}`);
+              throw new Error(data.detail || data.error || 'API request failed');
+          }
+          return data;
+      } catch (error) {
+          console.error('Fetch Error:', error);
+          alert(`Network Error: ${error.message}`);
+          throw error;
+      }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+      const token = sessionStorage.getItem('authToken');
+      if (!token) {
+          window.location.href = 'login.html';
+          return;
+      }
+      initializeApp();
+  });
+
+  async function initializeApp() {
+      try {
+          await fetchCurrentUser();
+          await fetchEmployeeProfile();
+          setupUI();
+          renderProfile();
+          setupEventListeners();
+      } catch (error) {
+          console.error("Failed to initialize app:", error);
+          alert("Could not load application data. Please log in again.");
+          sessionStorage.removeItem('authToken');
+          window.location.href = 'login.html';
+      }
+  }
+
+  async function fetchCurrentUser() {
+      currentUser = await apiCall('/users/me/');
+  }
+
+  async function fetchEmployeeProfile() {
+    try {
+        const response = await apiCall('/company/employees/me/');
+        
+        if (!response || !response.employee_profile) {
+            employeeProfile = {};
+            return;
+        }
+
+        const profileData = response.employee_profile;
+        currentUser = response.user;
+
+        const fieldMapping = {
+            empId: 'employee_id',
+            department: 'department',
+            designation: 'designation',
+            doj: 'date_of_joining',
+            empType: 'employment_type',
+            workLocation: 'work_location',
+            workAddress: 'work_address',
+            workEmail: 'work_email',
+            phone: 'personal_phone',
+            address: 'personal_address',
+            dob: 'date_of_birth',
+            gender: 'gender',
+            bloodGroup: 'blood_group',
+            pan: 'pan_number',
+            aadhar: 'aadhar_number',
+            uan: 'uan_number',
+            pf: 'pf_number',
+            bankAccount: 'bank_account_number',
+            bankName: 'bank_name',
+            bankBranch: 'bank_branch',
+            ifsc: 'bank_ifsc_code',
+            ctc: 'ctc',
+            fatherName: 'father_name',
+            motherName: 'mother_name',
+            maritalStatus: 'marital_status',
+            spouseName: 'spouse_name',
+            children: 'number_of_children',
+        };
+
+        const newProfile = {};
+        for (const frontendKey in fieldMapping) {
+            const backendKey = fieldMapping[frontendKey];
+            let value = profileData[backendKey];
+
+            if (frontendKey === 'doj' || frontendKey === 'dob') {
+                if (value) {
+                    value = value.split('T')[0];
+                }
+            }
+            
+            if (frontendKey === 'children') {
+                value = String(value || '0');
+            }
+
+            newProfile[frontendKey] = value || '';
+        }
+
+        employeeProfile = newProfile;
+    } catch (error) {
+        console.error('Failed to fetch employee profile:', error);
+        employeeProfile = {};
+    }
+}
+  function setupUI() {
+      const nameElement = document.getElementById('profile-name');
+      const roleElement = document.getElementById('profile-role');
+      const avatarElement = document.getElementById('user-avatar');
+      const nameLargeElement = document.getElementById('profile-name-large');
+      const roleLargeElement = document.getElementById('profile-role-large');
+      const emailLargeElement = document.getElementById('profile-email-large');
+      
+      if (nameElement) nameElement.textContent = currentUser.get_full_name || `${currentUser.first_name} ${currentUser.last_name}`;
+      if (roleElement) roleElement.textContent = currentUser.user_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      if (avatarElement) avatarElement.textContent = (currentUser.first_name || 'U').charAt(0).toUpperCase();
+      
+      if (nameLargeElement) nameLargeElement.textContent = currentUser.get_full_name || `${currentUser.first_name} ${currentUser.last_name}`;
+      if (roleLargeElement) roleLargeElement.textContent = currentUser.user_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      if (emailLargeElement) emailLargeElement.textContent = currentUser.email;
+  }
+
+  function renderProfile() {
+      const fields = [
+          { id: 'info-empId', field: 'empId' },
+          { id: 'info-department', field: 'department' },
+          { id: 'info-designation', field: 'designation' },
+          { id: 'info-manager', field: 'managerName' },
+          { id: 'info-doj', field: 'doj' },
+          { id: 'info-empType', field: 'empType' },
+          { id: 'info-workLocation', field: 'workLocation' },
+          { id: 'info-workAddress', field: 'workAddress' },
+          { id: 'info-workEmail', field: 'workEmail' },
+          { id: 'info-personalEmail', field: 'personalEmail' },
+          { id: 'info-phone', field: 'phone' },
+          { id: 'info-address', field: 'address' },
+          { id: 'info-dob', field: 'dob' },
+          { id: 'info-gender', field: 'gender' },
+          { id: 'info-bloodGroup', field: 'bloodGroup' },
+          { id: 'info-pan', field: 'pan' },
+          { id: 'info-aadhar', field: 'aadhar' },
+          { id: 'info-uan', field: 'uan' },
+          { id: 'info-pf', field: 'pf' },
+          { id: 'info-bankAccount', field: 'bankAccount' },
+          { id: 'info-bankBranch', field: 'bankName' },
+          { id: 'info-ifsc', field: 'ifsc' },
+          { id: 'info-ctc', field: 'ctc' },
+          { id: 'info-fatherName', field: 'fatherName' },
+          { id: 'info-motherName', field: 'motherName' },
+          { id: 'info-maritalStatus', field: 'maritalStatus' },
+          { id: 'info-spouseName', field: 'spouseName' },
+          { id: 'info-children', field: 'children' }
+      ];
+      
+      fields.forEach(({ id, field }) => {
+          const element = document.getElementById(id);
+          if (element) {
+              let value = employeeProfile[field] || 'N/A';
+              
+              if (field.includes('dob') || field.includes('doj')) {
+                  if (value && value !== 'N/A') {
+                      try {
+                          const date = new Date(value);
+                          if (!isNaN(date.getTime())) {
+                              value = date.toLocaleDateString();
+                          }
+                      } catch (e) {
+                      }
+                  }
+              }
+              
+              element.textContent = value;
+          }
+      });
+  }
+
+  function setupEventListeners() {
+      const avatarElement = document.getElementById('user-avatar');
+      const editProfileBtn = document.getElementById('edit-profile-btn');
+      const editProfileBtnMain = document.getElementById('edit-profile-btn-main');
+      const saveProfileBtn = document.getElementById('save-profile-btn');
+      const cancelProfileBtn = document.getElementById('cancel-profile-btn');
+      const logoutBtn = document.getElementById('logout-btn');
+      
+      if (avatarElement) {
+          avatarElement.addEventListener('click', function() {
+              const dropdown = document.getElementById('profile-dropdown');
+              dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+          });
+      }
+
+      document.addEventListener('click', function(e) {
+          const profileDropdown = document.getElementById('profile-dropdown');
+          const avatar = document.getElementById('user-avatar');
+          if (profileDropdown && avatar && !profileDropdown.contains(e.target) && e.target !== avatar) {
+              profileDropdown.style.display = 'none';
+          }
+      });
+
+      document.querySelectorAll('.nav-link').forEach(link => {
+          link.addEventListener('click', function(e) {
+              e.preventDefault();
+              const page = this.getAttribute('data-page');
+              if (page) {
+                  window.location.href = `${page}.html`;
+              }
+          });
+      });
+
+      // Make sure these event listeners are properly attached
+      if (editProfileBtn) {
+          console.log('Adding click listener to edit-profile-btn');
+          editProfileBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              console.log('Edit button clicked');
+              enableEditMode();
+          });
+      }
+      
+      if (editProfileBtnMain) {
+          console.log('Adding click listener to edit-profile-btn-main');
+          editProfileBtnMain.addEventListener('click', function(e) {
+              e.preventDefault();
+              console.log('Main edit button clicked');
+              enableEditMode();
+          });
+      }
+      
+      if (saveProfileBtn) {
+          console.log('Adding click listener to save-profile-btn');
+          saveProfileBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              console.log('Save button clicked');
+              saveProfileChanges();
+          });
+      }
+      
+      if (cancelProfileBtn) {
+          console.log('Adding click listener to cancel-profile-btn');
+          cancelProfileBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              console.log('Cancel button clicked');
+              cancelEdit();
+          });
+      }
+      
+      if (logoutBtn) {
+          logoutBtn.addEventListener('click', () => {
+              sessionStorage.removeItem('authToken');
+              window.location.href = 'login.html';
+          });
+      }
+  }
+
+  function enableEditMode() {
+      console.log('Enabling edit mode');
+      isEditMode = true;
+      
+      // Store original values for cancel functionality
+      originalProfileData = JSON.parse(JSON.stringify(employeeProfile));
+      
+      // Hide edit button and show save/cancel buttons
+      const editBtn = document.getElementById('edit-profile-btn');
+      const editBtnMain = document.getElementById('edit-profile-btn-main');
+      const saveBtn = document.getElementById('save-profile-btn');
+      const cancelBtn = document.getElementById('cancel-profile-btn');
+      
+      if (editBtn) editBtn.style.display = 'none';
+      if (editBtnMain) editBtnMain.style.display = 'none';
+      if (saveBtn) saveBtn.style.display = 'flex';
+      if (cancelBtn) cancelBtn.style.display = 'flex';
+      
+      // Get all elements with info-value class and data-field attribute
+      const infoValues = document.querySelectorAll('.info-value[data-field]');
+      console.log('Found info values:', infoValues.length);
+      
+      // Process each field
+      infoValues.forEach(valueElement => {
+          const field = valueElement.getAttribute('data-field');
+          if (!field) return;
+          
+          // Get the current value from the employeeProfile object
+          const currentValue = employeeProfile[field] || '';
+          console.log(`Processing field ${field} with value:`, currentValue);
+          
+          // Create appropriate input element based on field type
+          let input;
+          
+          if (field.includes('dob') || field.includes('doj')) {
+              input = document.createElement('input');
+              input.type = 'date';
+              if (currentValue && currentValue !== 'N/A') {
+                  input.value = currentValue;
+              }
+          } else if (field === 'gender') {
+              input = document.createElement('select');
+              ['Male', 'Female', 'Other'].forEach(optionText => {
+                  const optionElement = document.createElement('option');
+                  optionElement.value = optionText;
+                  optionElement.textContent = optionText;
+                  if (optionText === currentValue) {
+                      optionElement.selected = true;
+                  }
+                  input.appendChild(optionElement);
+              });
+          } else if (field === 'bloodGroup') {
+              input = document.createElement('select');
+              ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].forEach(optionText => {
+                  const optionElement = document.createElement('option');
+                  optionElement.value = optionText;
+                  optionElement.textContent = optionText;
+                  if (optionText === currentValue) {
+                      optionElement.selected = true;
+                  }
+                  input.appendChild(optionElement);
+              });
+          } else if (field === 'empType') {
+              input = document.createElement('select');
+              ['Full-time', 'Part-time', 'Contract', 'Intern'].forEach(optionText => {
+                  const optionElement = document.createElement('option');
+                  optionElement.value = optionText;
+                  optionElement.textContent = optionText;
+                  if (optionText === currentValue) {
+                      optionElement.selected = true;
+                  }
+                  input.appendChild(optionElement);
+              });
+          } else if (field === 'maritalStatus') {
+              input = document.createElement('select');
+              ['Single', 'Married', 'Divorced', 'Widowed'].forEach(optionText => {
+                  const optionElement = document.createElement('option');
+                  optionElement.value = optionText;
+                  optionElement.textContent = optionText;
+                  if (optionText === currentValue) {
+                      optionElement.selected = true;
+                  }
+                  input.appendChild(optionElement);
+              });
+          } else {
+              input = document.createElement('input');
+              input.type = 'text';
+              input.value = currentValue;
+          }
+          
+          
+          input.className = 'info-value editing';
+          input.id = `edit-${field}`;
+          
+          
+          valueElement.innerHTML = '';
+          valueElement.appendChild(input);
+          valueElement.classList.add('editing');
+      });
+  }
+
+  // Define exitEditMode before saveProfileChanges
+  function exitEditMode() {
+      console.log('Exiting edit mode');
+      isEditMode = false;
+      
+      const editBtn = document.getElementById('edit-profile-btn');
+      const editBtnMain = document.getElementById('edit-profile-btn-main');
+      const saveBtn = document.getElementById('save-profile-btn');
+      const cancelBtn = document.getElementById('cancel-profile-btn');
+      
+      if (editBtn) editBtn.style.display = 'flex';
+      if (editBtnMain) editBtnMain.style.display = 'flex';
+      if (saveBtn) saveBtn.style.display = 'none';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+  }
+
+  function cancelEdit() {
+      console.log('Canceling edit mode');
+      isEditMode = false;
+      
+      const editBtn = document.getElementById('edit-profile-btn');
+      const editBtnMain = document.getElementById('edit-profile-btn-main');
+      const saveBtn = document.getElementById('save-profile-btn');
+      const cancelBtn = document.getElementById('cancel-profile-btn');
+      
+      if (editBtn) editBtn.style.display = 'flex';
+      if (editBtnMain) editBtnMain.style.display = 'flex';
+      if (saveBtn) saveBtn.style.display = 'none';
+      if (cancelBtn) cancelBtn.style.display = 'none';
+      
+      // Only reset to original data if actually canceling
+      employeeProfile = JSON.parse(JSON.stringify(originalProfileData));
+      
+      renderProfile();
+  }
+
+ async function saveProfileChanges() {
+    const updatedProfile = {};
+    const editableFields = document.querySelectorAll('.info-value[data-field]');
+    
+    editableFields.forEach(fieldElement => {
+        const fieldName = fieldElement.getAttribute('data-field');
+        const input = fieldElement.querySelector('input, select');
+        
+        if (input) {
+            updatedProfile[fieldName] = input.value;
+        }
+    });
+
+    const fieldMapping = {
+        empId: 'employee_id',
+        department: 'department',
+        designation: 'designation',
+        doj: 'date_of_joining',
+        empType: 'employment_type',
+        workLocation: 'work_location',
+        workAddress: 'work_address',
+        workEmail: 'work_email',
+        phone: 'personal_phone',
+        address: 'personal_address',
+        dob: 'date_of_birth',
+        gender: 'gender',
+        bloodGroup: 'blood_group',
+        pan: 'pan_number',
+        aadhar: 'aadhar_number',
+        uan: 'uan_number',
+        pf: 'pf_number',
+        bankAccount: 'bank_account_number',
+        bankName: 'bank_name',
+        bankBranch: 'bank_branch',
+        ifsc: 'bank_ifsc_code',
+        ctc: 'ctc',
+        fatherName: 'father_name',
+        motherName: 'mother_name',
+        maritalStatus: 'marital_status',
+        spouseName: 'spouse_name',
+        children: 'number_of_children',
+    };
+
+    const backendPayload = {};
+    for (const frontendKey in updatedProfile) {
+        const backendKey = fieldMapping[frontendKey];
+        if (backendKey) {
+            backendPayload[backendKey] = updatedProfile[frontendKey];
+        }
+    }
+    
+    try {
+        const response = await apiCall('/company/employees/me/', {
+            method: 'PATCH',
+            body: JSON.stringify(backendPayload)
+        });
+        
+        for (const frontendKey in updatedProfile) {
+            employeeProfile[frontendKey] = updatedProfile[frontendKey];
+        }
+        
+        alert('Profile updated successfully!');
+        renderProfile();
+        exitEditMode();
+
+    } catch (error) {
+        console.error('Failed to save profile:', error);
+        alert(`Failed to save profile: ${error.message || 'Unknown error'}`);
+    }
+}
+</script>
+
+</body>
+</html>

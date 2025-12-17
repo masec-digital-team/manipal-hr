@@ -1,0 +1,2546 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHRS - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary-color: #2e7d32;
+            --secondary-color: #ffeb3b;
+            --light-bg: #f5f7fa;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --hover-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Navigation Styles - Fixed Height and Logo Positioning */
+        .navbar {
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            height: 70px;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            height: 100%;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+            height: 100%;
+        }
+
+        /* Logo container with responsive sizing - MADE MUCH SMALLER FOR DESKTOP */
+        .logo-container {
+            width: 120px; /* Significantly reduced from 180px */
+            height: 60px; /* Significantly reduced from 90px */
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            overflow: hidden;
+            position: relative;
+            animation: logoFloat 3s ease-in-out infinite;
+            transition: transform 0.3s ease;
+        }
+
+        /* Responsive logo sizing - MADE EVEN SMALLER FOR MOBILE */
+        @media (max-width: 768px) {
+            .logo-container {
+                width: 100px; /* Reduced from 140px */
+                height: 50px; /* Reduced from 70px */
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .logo-container {
+                width: 80px; /* Further reduced */
+                height: 40px; /* Further reduced */
+            }
+        }
+
+        .logo-container:hover {
+            transform: scale(1.05);
+        }
+
+        .logo-image {
+            max-width: 85%;
+            max-height: 85%;
+            object-fit: contain;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2));
+            z-index: 2;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        .navbar-menu {
+            display: flex;
+            list-style: none;
+        }
+
+        .navbar-menu li {
+            margin-left: 20px;
+        }
+
+        .navbar-menu a {
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+            font-size: 16px;
+        }
+
+        .navbar-menu a:hover, .navbar-menu a.active {
+            color: white;
+        }
+
+        .navbar-menu a.active::after {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .notification-bell {
+            position: relative;
+            margin-right: 15px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            display:none;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background-color: #f44336;
+            color: white;
+            font-size: 9px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid white;
+        }
+
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            cursor: pointer;
+            position: relative;
+            z-index: 10;
+            padding: 10px;
+        }
+
+        .hamburger span {
+            width: 30px;
+            height: 4px;
+            background-color: white;
+            margin: 4px 0;
+            transition: 0.3s;
+            border-radius: 2px;
+        }
+
+        /* Mobile Navigation */
+        .mobile-nav-container {
+            display: none;
+            align-items: center;
+        }
+
+        .mobile-user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 2px solid white;
+            margin-left: 10px;
+            cursor:none;
+            pointer-events: none;
+        }
+
+        /* Mobile Navigation Overlay */
+        .mobile-nav-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .mobile-nav-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-nav {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 280px;
+            height: 100%;
+            background-color: white;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            z-index: 1001;
+            overflow-y: auto;
+        }
+
+        .mobile-nav.active {
+            right: 0;
+        }
+
+        .mobile-nav-header {
+            padding: 15px;
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-nav-close {
+            font-size: 20px;
+            cursor: pointer;
+            color: white;
+        }
+
+        .mobile-nav-menu {
+            list-style: none;
+            padding: 15px 0;
+        }
+
+        .mobile-nav-menu li {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mobile-nav-menu a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            font-size: 15px;
+            pointer-events: auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        .mobile-nav-menu i {
+            margin-right: 12px;
+            color: var(--primary-color);
+        }
+
+        /* Bottom Navigation for Mobile */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 998;
+        }
+
+        .bottom-nav-container {
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+        }
+
+        .bottom-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #666;
+            transition: color 0.3s;
+            padding: 5px;
+            flex: 1;
+        }
+
+        .bottom-nav-item.active {
+            color: var(--primary-color);
+        }
+
+        .bottom-nav-item i {
+            font-size: 18px;
+            margin-bottom: 3px;
+        }
+
+        .bottom-nav-item span {
+            font-size: 11px;
+        }
+
+        /* Mini Profile Modal - Fixed positioning to appear next to avatar */
+        .mini-profile-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1002;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .mini-profile-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Desktop mini profile - positioned next to avatar */
+        .mini-profile {
+            display:none;
+            position: fixed;
+            top: 70px; /* Right below navbar */
+            right: 20px; /* Next to avatar */
+            width: 320px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1003;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .mini-profile.active {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Mobile mini profile - positioned next to avatar */
+        @media (max-width: 768px) {
+            .mini-profile {
+                position: fixed;
+                top: 70px; /* Right below navbar */
+                right: 10px; /* Next to mobile avatar */
+                left: auto;
+                width: 280px;
+                transform: translateY(-20px);
+                max-height: 80vh;
+                overflow-y: auto;
+            }
+            
+            .mini-profile.active {
+                transform: translateY(0);
+            }
+        }
+
+        .mini-profile-header {
+            position: relative;
+            height: 120px;
+            overflow: hidden;
+        }
+
+        /* Add overlay for desktop only */
+        @media (min-width: 769px) {
+            .mini-profile-header::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(to bottom, rgba(46, 125, 50, 0.7) 0%, rgba(46, 125, 50, 0.9) 100%);
+            }
+        }
+
+        /* Mobile - no overlay */
+        @media (max-width: 768px) {
+            .mini-profile-header {
+                background-color: var(--primary-color);
+                height: auto;
+                padding-bottom: 15px;
+            }
+        }
+
+        .mini-profile-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 2;
+            color: white;
+        }
+
+        .mini-profile-content {
+            padding: 20px;
+            position: relative;
+            margin-top: -40px;
+            background-color: white;
+            border-radius: 10px 10px 0 0;
+        }
+
+        /* Desktop avatar positioning */
+        @media (min-width: 769px) {
+            .mini-profile-avatar-container {
+                position: relative;
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 15px;
+                z-index: 2;
+            }
+        }
+
+        /* Mobile avatar positioning */
+        @media (max-width: 768px) {
+            .mini-profile-avatar-container {
+                position: relative;
+                width: 80px;
+                height: 80px;
+                margin: 0 auto 15px;
+                z-index: 2;
+                margin-top: 0;
+            }
+            .mini-profile-content {
+                margin-top: 0;
+            }
+        }
+
+        .mini-profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .mini-profile-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .mini-profile-title {
+            opacity: 0.9;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .mini-profile-location {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            opacity: 0.9;
+            justify-content: center;
+        }
+
+        .mini-profile-location i {
+            margin-right: 5px;
+        }
+
+        .mini-profile-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .mini-profile-btn {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mini-profile-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .mini-profile-btn.primary {
+            background-color: white;
+            color: var(--primary-color);
+        }
+
+        .upload-cv-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .upload-cv-btn:hover {
+            background-color: #1b5e20;
+        }
+
+        .upload-cv-btn i {
+            margin-right: 8px;
+        }
+
+        /* Job Detail View */
+        .job-detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1004;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .job-detail-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .job-detail-container {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 50%;
+            height: 100%;
+            background-color: white;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            z-index: 1005;
+            overflow-y: auto;
+        }
+
+        .job-detail-container.active {
+            right: 0;
+        }
+
+        .job-detail-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+
+        .job-detail-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .company-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .company-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            margin-right: 15px;
+            background-color: white;
+            padding: 5px;
+        }
+
+        .company-details h2 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .company-details p {
+            opacity: 0.9;
+        }
+
+        /* Enhanced Job Detail Content */
+        .job-detail-content {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .job-detail-section {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .job-detail-section:last-child {
+            border-bottom: none;
+        }
+
+        .job-detail-section h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .job-detail-section h3 i {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        .job-detail-section p, .job-detail-section ul {
+            color: #555;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .job-detail-section ul {
+            padding-left: 20px;
+        }
+
+        .job-detail-section ul li {
+            margin-bottom: 10px;
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .job-detail-section ul li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .job-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .job-skill {
+            background-color: #e8f5e9;
+            color: var(--primary-color);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .job-detail-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .job-detail-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .job-detail-btn i {
+            margin-right: 8px;
+        }
+
+        .apply-detail-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        .apply-detail-btn:hover {
+            background-color: #1b5e20;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.3);
+        }
+
+        .save-detail-btn {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .save-detail-btn:hover {
+            background-color: #f0f8f0;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.1);
+        }
+
+        .upload-cv-detail-btn {
+            background-color: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .upload-cv-detail-btn:hover {
+            background-color: #e8e8e8;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Mobile Job Detail View */
+        .mobile-job-detail-container {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            height: 85%;
+            background-color: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+            transition: bottom 0.3s ease;
+            z-index: 1005;
+            overflow-y: auto;
+        }
+
+        .mobile-job-detail-container.active {
+            bottom: 0;
+        }
+
+        .mobile-job-detail-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-job-detail-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .drag-indicator {
+            width: 40px;
+            height: 4px;
+            background-color: #ddd;
+            border-radius: 2px;
+            margin: 10px auto;
+        }
+
+        /* Main Content */
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .main-content {
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 350px;
+        }
+
+        /* Search Section - Completely rewritten for mobile compatibility */
+        .search-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .search-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .search-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .search-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background-color: transparent;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+            /* Ensure buttons are clickable on mobile */
+            position: relative;
+            z-index: 10;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+
+        /* Completely simplified search input styling - Fixed for mobile */
+        .search-input {
+            padding: 14px 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 100%;
+            background-color: #fff;
+            color: #333;
+            outline: none;
+            -webkit-appearance: none;
+            -webkit-user-select: text;
+            user-select: text;
+            /* Added these properties to fix mobile input */
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            /* Added z-index to ensure it's above other elements */
+            position: relative;
+            z-index: 10;
+            /* Ensure input is clickable on mobile */
+            pointer-events: auto;
+        }
+
+        .search-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            font-weight: 500;
+            font-size: 16px;
+            touch-action: manipulation;
+        }
+
+        .search-btn:hover {
+            background-color: #1b5e20;
+        }
+
+        /* Recommended Jobs Section */
+        .jobs-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .view-all-btn {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .view-all-btn i {
+            margin-left: 5px;
+        }
+
+        .job-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .job-card:hover {
+            box-shadow: var(--hover-shadow);
+            transform: translateY(-3px);
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .job-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .job-company {
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .job-type {
+            background-color: #e8f5e9;
+            color: var(--primary-color);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .job-details {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .job-detail {
+            display: flex;
+            align-items: center;
+        }
+
+        .job-detail i {
+            margin-right: 5px;
+            color: var(--primary-color);
+        }
+
+        .job-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .job-skills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .skill-tag {
+            background-color: #f0f0f0;
+            color: #555;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .job-actions {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .apply-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+            touch-action: manipulation;
+        }
+
+        .apply-btn:hover {
+            background-color: #1b5e20;
+        }
+
+        .save-job {
+            background: transparent;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 20px;
+            transition: color 0.3s;
+            padding: 5px;
+        }
+
+        .save-job:hover, .save-job.saved {
+            color: #f44336;
+        }
+
+        /* Sidebar Styles */
+        .profile-card {
+            background-color: white;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Desktop profile card with background image */
+        @media (min-width: 769px) {
+            .profile-card {
+                padding-top: 0;
+            }
+            
+            .profile-header-bg {
+                height: 120px;
+                 background: url('https://picsum.photos/seed/profile-bg/350/120.jpg') center/cover; 
+                position: relative;
+            }
+            
+            .profile-header-bg::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+            
+            .profile-content {
+                padding: 25px;
+                padding-top: 60px;
+                background-color: white;
+                position: relative;
+            }
+            
+            .profile-avatar-container {
+                position: absolute;
+                top: -50px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100px;
+                height: 100px;
+                z-index: 2;
+            }
+            
+            .profile-avatar {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 4px solid white;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            }
+        }
+
+        /* Mobile profile card without background image */
+        @media (max-width: 768px) {
+            .profile-card {
+                padding: 25px;
+            }
+            
+            .profile-header-bg {
+                display: none !important;
+            }
+            
+            .profile-content {
+                padding: 0;
+            }
+            
+            .profile-avatar-container {
+                margin-bottom: 15px;
+            }
+            
+            .profile-avatar {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 3px solid var(--primary-color);
+                margin-bottom: 15px;
+            }
+        }
+
+        .profile-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .profile-title {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .profile-location {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .profile-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .profile-action-btn {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 5px;
+            padding: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        .profile-action-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .profile-action-btn i {
+            margin-right: 8px;
+        }
+
+        .profile-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-weight: 500;
+            width: 100%;
+            transition: background-color 0.3s;
+            touch-action: manipulation;
+        }
+
+        .profile-btn:hover {
+            background-color: #1b5e20;
+        }
+
+        /* Trending Topics */
+        .trending-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .trending-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .trending-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            background: transparent;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+        }
+
+        .trending-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .trending-tag {
+            background-color: #f0f0f0;
+            color: #555;
+            padding: 10px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            touch-action: manipulation;
+        }
+
+        .trending-tag:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Events Card */
+        .events-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .events-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .event-item {
+            border-left: 3px solid var(--primary-color);
+            padding-left: 15px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .event-date {
+            position: absolute;
+            left: -40px;
+            top: 0;
+            background-color: var(--primary-color);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .event-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .event-time {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .event-description {
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .profile-stats {
+                justify-content: space-around;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar-menu {
+                display: none;
+            }
+
+            .navbar-actions {
+                display: none;
+            }
+
+            .mobile-nav-container {
+                display: flex;
+            }
+
+            .hamburger {
+                display: flex !important;
+            }
+
+            .bottom-nav {
+                display: block;
+            }
+
+            .dashboard-container {
+                padding: 20px 10px 80px;
+            }
+
+            .search-filters {
+                flex-wrap: wrap;
+            }
+
+            .job-details {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .job-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .apply-btn {
+                width: 100%;
+            }
+
+            .sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .search-section, .jobs-section, .profile-card, .trending-card, .events-card {
+                padding: 15px;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .job-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .job-type {
+                margin-top: 10px;
+            }
+
+            .search-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .search-filters {
+                width: 100%;
+                justify-content: space-around;
+            }
+
+            .filter-btn {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+        }
+        .profile-action-btn a{
+         text-decoration:none;
+         color:#666;
+    }
+    .profile-action-btn:hover {
+      background-color: white;
+      color: var(--primary-color);
+      border: 1px solid var(--primary-color);
+    }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="#" class="navbar-brand">
+                <div class="logo-container">
+                    <img src="./company_logo.png" alt="MHRS Logo" class="logo-image">
+                </div>
+            </a>
+            
+            <ul class="navbar-menu">
+                <li><a href="./dashboard.html" class="active">Home</a></li>
+                <li><a href="./dashboard.html">Dashboard</a></li>
+                <li><a href="./profile.html">Profile</a></li>
+                <li><a href="./job.html">My Jobs</a></li>
+<!--                <li><a href="#">My Network</a></li>-->
+            </ul>
+            
+            <div class="navbar-actions">
+                <div class="notification-bell">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </div>
+                <img src="#" alt="" class="user-avatar" id="desktopUserAvatar">
+            </div>
+            
+            <div class="mobile-nav-container">
+                <div class="hamburger" id="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <img src="" alt="" class="mobile-user-avatar" id="mobileUserAvatar">
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" id="mobileNavOverlay"></div>
+    
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav" id="mobileNav">
+        <div class="mobile-nav-header">
+            <div class="navbar-brand" style="color: white;">
+                <div class="logo-container" style="width: 80px; height: 40px;">
+                    <img src="./company_logo.png" alt="MHRS Logo" class="logo-image" style="max-width: 85%; max-height: 85%;">
+                </div>
+            </div>
+            <div class="mobile-nav-close" id="mobileNavClose">
+                <i class="fas fa-times"></i>
+            </div>
+        </div>
+        
+        <ul class="mobile-nav-menu">
+            <li><a href="#"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="./dashboard.html"><i class="fas fa-th-large"></i> Dashboard</a></li>
+            <li><a href="./profile.html"><i class="fas fa-user"></i> Profile</a></li>
+            <li><a href="./job.html"><i class="fas fa-briefcase"></i> My Jobs</a></li>
+<!--            <li><a href="#"><i class="fas fa-users"></i> My Network</a></li>-->
+<!--            <li><a href="#"><i class="fas fa-bell"></i> Notifications</a></li>-->
+<!--            <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>-->
+            <li><a href="./login.html"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+    </div>
+    
+    <!-- Bottom Navigation for Mobile -->
+    <div class="bottom-nav">
+        <div class="bottom-nav-container">
+            <a href="./dashboard.html" class="bottom-nav-item active">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="./job.html" class="bottom-nav-item">
+                <i class="fas fa-briefcase"></i>
+                <span>jobs</span>
+            </a>
+<!--            <a href="#" class="bottom-nav-item">-->
+<!--                <i class="fas fa-users"></i>-->
+<!--                <span>Network</span>-->
+<!--            </a>-->
+<!--            <a href="#" class="bottom-nav-item">-->
+<!--                <i class="fas fa-bell"></i>-->
+<!--                <span>Alerts</span>-->
+<!--            </a>-->
+            <a href="./profile.html" class="bottom-nav-item">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        </div>
+    </div>
+    
+ <!-- Mini Profile Modal -->
+        <div class="mini-profile-overlay" id="miniProfileOverlay"></div>
+        <div class="mini-profile" id="miniProfile">
+            <div class="mini-profile-header">
+                <div class="mini-profile-close" id="miniProfileClose">
+                    <i class="fas fa-times"></i>
+                </div>
+                <div class="mini-profile-avatar-container">
+                    <img src="" alt="" class="mini-profile-avatar">
+                </div>
+                <h3 class="mini-profile-name"></h3>
+                <p class="mini-profile-title"></p>
+                <p class="mini-profile-location"><i class="fas fa-map-marker-alt"></i></p>
+            </div>
+
+            <div class="mini-profile-content">
+                <div class="mini-profile-actions">
+                    <a href="./profile.html" class="mini-profile-btn primary" style="text-decoration: none;">
+                        <i class="fas fa-user"></i> View Full Profile
+                    </a>
+<!--                    <button class="mini-profile-btn">-->
+<!--                        <i class="fas fa-cog"></i> Settings-->
+<!--                    </button>-->
+                    <button class="mini-profile-btn" onclick="logoutUser()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+
+<!--                <button class="upload-cv-btn" id="uploadCvBtn">-->
+<!--                    <i class="fas fa-upload"></i> Upload CV-->
+<!--                </button>-->
+<!--                <input type="file" id="cvFileInput" accept=".pdf,.doc,.docx" style="display: none;">-->
+            </div>
+        </div>
+    
+    <!-- Main Dashboard Content -->
+    <div class="dashboard-container">
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <!-- Search Section -->
+            <div class="search-section">
+                <div class="search-header">
+                    <h2 class="search-title">Search Jobs</h2>
+                    <!-- In dashboard.html -->
+
+<div class="search-filters">
+    <button class="filter-btn active" data-type="all">All Jobs</button>
+    <button class="filter-btn" data-type="remote">Remote</button>
+    <button class="filter-btn" data-type="full_time">Full-time</button>
+    <button class="filter-btn" data-type="part_time">Part-time</button>
+    <button class="filter-btn" data-type="contract">Contract</button>
+</div>
+                </div>
+                
+                <div class="search-bar">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Find jobs matching your skills..." autocomplete="off">
+                    <button class="search-btn" id="searchBtn">Search</button>
+                </div>
+            </div>
+            
+            <!-- Recommended Jobs Section -->
+            <div class="jobs-section">
+                <div class="section-header">
+                    <h2 class="section-title">Recommended Jobs</h2>
+                    <a href="#" class="view-all-btn">View All <i class="fas fa-arrow-right"></i></a>
+                </div>
+                
+                <!-- Job Card 1 -->
+                <div class="job-card" data-job-id="1" data-job-type="full-time">
+                    <div class="job-header">
+                        <div>
+                            <h3 class="job-title">Data Analyst</h3>
+                            <div class="job-company">Google</div>
+                        </div>
+                        <div class="job-type">Full-time</div>
+                    </div>
+                    
+                    <div class="job-details">
+                        <div class="job-detail">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Bangalore, India</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>₹15-25 LPA</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-briefcase"></i>
+                            <span>2-5 years</span>
+                        </div>
+                    </div>
+                    
+                    <p class="job-description">Analyzing complex data sets and providing insights to drive business decisions.</p>
+                    
+                    <div class="job-skills">
+                        <span class="skill-tag">Python</span>
+                        <span class="skill-tag">SQL</span>
+                        <span class="skill-tag">Data Visualization</span>
+                        <span class="skill-tag">Statistics</span>
+                    </div>
+                    
+                    <div class="job-actions">
+                        <button class="apply-btn" data-job-id="1">Apply Now</button>
+                        <button class="save-job">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Job Card 2 -->
+                <div class="job-card" data-job-id="2" data-job-type="full-time">
+                    <div class="job-header">
+                        <div>
+                            <h3 class="job-title">Web Developer</h3>
+                            <div class="job-company">Amazon</div>
+                        </div>
+                        <div class="job-type">Full-time</div>
+                    </div>
+                    
+                    <div class="job-details">
+                        <div class="job-detail">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Hyderabad, India</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>₹12-20 LPA</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-briefcase"></i>
+                            <span>3-6 years</span>
+                        </div>
+                    </div>
+                    
+                    <p class="job-description">Building innovative solutions for millions of customers.</p>
+                    
+                    <div class="job-skills">
+                        <span class="skill-tag">HTML/CSS</span>
+                        <span class="skill-tag">JavaScript</span>
+                        <span class="skill-tag">React</span>
+                        <span class="skill-tag">Node.js</span>
+                    </div>
+                    
+                    <div class="job-actions">
+                        <button class="apply-btn" data-job-id="2">Apply Now</button>
+                        <button class="save-job">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Job Card 3 -->
+                <div class="job-card" data-job-id="3" data-job-type="full-time">
+                    <div class="job-header">
+                        <div>
+                            <h3 class="job-title">Software Engineer</h3>
+                            <div class="job-company">Infosys</div>
+                        </div>
+                        <div class="job-type">Full-time</div>
+                    </div>
+                    
+                    <div class="job-details">
+                        <div class="job-detail">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Pune, India</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>₹8-15 LPA</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-briefcase"></i>
+                            <span>1-3 years</span>
+                        </div>
+                    </div>
+                    
+                    <p class="job-description">Designing, developing, and maintaining software applications.</p>
+                    
+                    <div class="job-skills">
+                        <span class="skill-tag">Java</span>
+                        <span class="skill-tag">Spring Boot</span>
+                        <span class="skill-tag">Microservices</span>
+                        <span class="skill-tag">SQL</span>
+                    </div>
+                    
+                    <div class="job-actions">
+                        <button class="apply-btn" data-job-id="3">Apply Now</button>
+                        <button class="save-job">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Job Card 4 - New -->
+                <div class="job-card" data-job-id="4" data-job-type="part-time">
+                    <div class="job-header">
+                        <div>
+                            <h3 class="job-title">UI/UX Designer</h3>
+                            <div class="job-company">Microsoft</div>
+                        </div>
+                        <div class="job-type">Part-time</div>
+                    </div>
+                    
+                    <div class="job-details">
+                        <div class="job-detail">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Bangalore, India</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>₹20-30 LPA</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-briefcase"></i>
+                            <span>2-4 years</span>
+                        </div>
+                    </div>
+                    
+                    <p class="job-description">Designing intuitive and beautiful interfaces for our products.</p>
+                    
+                    <div class="job-skills">
+                        <span class="skill-tag">Figma</span>
+                        <span class="skill-tag">Adobe XD</span>
+                        <span class="skill-tag">Prototyping</span>
+                        <span class="skill-tag">User Research</span>
+                    </div>
+                    
+                    <div class="job-actions">
+                        <button class="apply-btn" data-job-id="4">Apply Now</button>
+                        <button class="save-job">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Job Card 5 - New -->
+                <div class="job-card" data-job-id="5" data-job-type="remote">
+                    <div class="job-header">
+                        <div>
+                            <h3 class="job-title">Digital Marketing Specialist</h3>
+                            <div class="job-company">Meta</div>
+                        </div>
+                        <div class="job-type">Remote</div>
+                    </div>
+                    
+                    <div class="job-details">
+                        <div class="job-detail">
+                            <i class="fas fa-globe"></i>
+                            <span>Remote</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>₹18-25 LPA</span>
+                        </div>
+                        <div class="job-detail">
+                            <i class="fas fa-briefcase"></i>
+                            <span>3-5 years</span>
+                        </div>
+                    </div>
+                    
+                    <p class="job-description">Growing our online presence and engaging with our community.</p>
+                    
+                    <div class="job-skills">
+                        <span class="skill-tag">SEO</span>
+                        <span class="skill-tag">Content Strategy</span>
+                        <span class="skill-tag">Social Media</span>
+                        <span class="skill-tag">Analytics</span>
+                    </div>
+                    
+                    <div class="job-actions">
+                        <button class="apply-btn" data-job-id="5">Apply Now</button>
+                        <button class="save-job">
+                            <i class="far fa-bookmark"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Profile Card -->
+            <div class="profile-card">
+                <div class="profile-header-bg"></div>
+                <div class="profile-content">
+                    <div class="profile-avatar-container">
+                        <img src="" alt="" class="profile-avatar">
+                    </div>
+                    <h3 class="profile-name">John Doe</h3>
+                    <p class="profile-title">B.Sc Computer Science</p>
+                    <p class="profile-location"><i class="fas fa-map-marker-alt"></i> New Delhi, India</p>
+                    
+                    <div class="profile-actions">
+                        <button class="profile-action-btn">
+                            <i class="fas fa-plus"></i> <a href="./profile.html"> Add Experience </a>
+                        </button>
+                        <button class="profile-action-btn">
+                            <i class="fas fa-plus"></i> <a href="./profile.html"> Add Education </a>
+                        </button>
+                    </div>
+                    
+                    <a href="./profile.html" class="profile-btn" style="text-decoration: none; display: block; text-align: center;">View Profile</a>
+                </div>
+            </div>
+            
+            <!-- Trending Topics -->
+<!--            <div class="trending-card">-->
+<!--                <div class="trending-header">-->
+<!--                    <h3 class="trending-title">Trending Topics</h3>-->
+<!--                    <button class="refresh-btn"><i class="fas fa-sync-alt"></i></button>-->
+<!--                </div>-->
+<!--                -->
+<!--                <div class="trending-tags">-->
+<!--                    <span class="trending-tag">Python</span>-->
+<!--                    <span class="trending-tag">JavaScript</span>-->
+<!--                    <span class="trending-tag">Data Science</span>-->
+<!--                    <span class="trending-tag">Machine Learning</span>-->
+<!--                    <span class="trending-tag">Web Development</span>-->
+<!--                    <span class="trending-tag">Cloud Computing</span>-->
+<!--                </div>-->
+<!--            </div>-->
+            
+            <!-- Events -->
+<!--            <div class="events-card">-->
+<!--                <h3 class="events-title">Upcoming Events</h3>-->
+<!--                -->
+<!--                <div class="event-item">-->
+<!--                    <div class="event-date">15</div>-->
+<!--                    <h4 class="event-title">Career Fair 2023</h4>-->
+<!--                    <p class="event-time"><i class="far fa-clock"></i> June 15, 2023, 10:00 AM</p>-->
+<!--                    <p class="event-description">Join us for our annual career fair with top companies.</p>-->
+<!--                </div>-->
+<!--                -->
+<!--                <div class="event-item">-->
+<!--                    <div class="event-date">20</div>-->
+<!--                    <h4 class="event-title">Resume Workshop</h4>-->
+<!--                    <p class="event-time"><i class="far fa-clock"></i> June 20, 2023, 2:00 PM</p>-->
+<!--                    <p class="event-description">Learn how to create an effective resume that stands out.</p>-->
+<!--                </div>-->
+<!--                -->
+<!--                <div class="event-item">-->
+<!--                    <div class="event-date">25</div>-->
+<!--                    <h4 class="event-title">Interview Skills</h4>-->
+<!--                    <p class="event-time"><i class="far fa-clock"></i> June 25, 2023, 3:00 PM</p>-->
+<!--                    <p class="event-description">Master art of interviewing with our expert guidance.</p>-->
+<!--                </div>-->
+<!--            </div>-->
+        </div>
+    </div>
+    
+    <!-- Job Detail Overlay for Desktop -->
+    <div class="job-detail-overlay" id="jobDetailOverlay"></div>
+    <div class="job-detail-container" id="jobDetailContainer">
+        <div class="job-detail-header">
+            <div class="job-detail-close" id="jobDetailClose">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="company-info">
+                <img src="https://picsum.photos/seed/google/60/60.jpg" alt="Company Logo" class="company-logo">
+                <div class="company-details">
+                    <h2>Data Analyst</h2>
+                    <p>Google</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="job-detail-content">
+            <div class="job-detail-section">
+                <h3><i class="fas fa-briefcase"></i> Job Details</h3>
+                <div class="job-details">
+                    <div class="job-detail">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Bangalore, India</span>
+                    </div>
+                    <div class="job-detail">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>₹15-25 LPA</span>
+                    </div>
+                    <div class="job-detail">
+                        <i class="fas fa-briefcase"></i>
+                        <span>2-5 years</span>
+                    </div>
+                    <div class="job-detail">
+                        <i class="fas fa-clock"></i>
+                        <span>Full-time</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-file-alt"></i> Job Description</h3>
+                <p>Analyzing complex data sets and providing insights to drive business decisions. The ideal candidate will have strong analytical skills and experience with data visualization tools.</p>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-user-check"></i> Eligibility Criteria</h3>
+                <ul>
+                    <li>Bachelor's degree in Computer Science, Statistics, or related field</li>
+                    <li>2-5 years of experience in data analysis</li>
+                    <li>Proficiency in SQL and Python</li>
+                    <li>Experience with data visualization tools like Tableau or Power BI</li>
+                    <li>Strong analytical and problem-solving skills</li>
+                </ul>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-tools"></i> Required Skills</h3>
+                <div class="job-skills">
+                    <span class="job-skill">Python</span>
+                    <span class="job-skill">SQL</span>
+                    <span class="job-skill">Data Visualization</span>
+                    <span class="job-skill">Statistics</span>
+                    <span class="job-skill">Machine Learning</span>
+                    <span class="job-skill">Excel</span>
+                </div>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-building"></i> About Company</h3>
+                <p>Google is a multinational technology company specializing in Internet-related services and products. We're committed to creating a diverse and inclusive workplace for all employees.</p>
+            </div>
+            
+            <div class="job-detail-actions">
+                <button class="job-detail-btn apply-detail-btn">
+                    <i class="fas fa-paper-plane"></i> Apply Now
+                </button>
+                <button class="job-detail-btn save-detail-btn">
+                    <i class="fas fa-bookmark"></i> Save Job
+                </button>
+                <button class="job-detail-btn upload-cv-detail-btn">
+                    <i class="fas fa-upload"></i> Upload CV
+                </button>
+                <input type="file" id="cvDetailFileInput" accept=".pdf,.doc,.docx" style="display: none;">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mobile Job Detail View -->
+    <div class="mobile-job-detail-container" id="mobileJobDetailContainer">
+        <div class="drag-indicator"></div>
+        <div class="mobile-job-detail-header">
+            <h3>Job Details</h3>
+            <div class="mobile-job-detail-close" id="mobileJobDetailClose">
+                <i class="fas fa-times"></i>
+            </div>
+        </div>
+        
+        <div class="job-detail-content">
+            <div class="company-info">
+                <img src="https://picsum.photos/seed/google/60/60.jpg" alt="Company Logo" class="company-logo">
+                <div class="company-details">
+                    <h2>Data Analyst</h2>
+                    <p>Google</p>
+                </div>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-briefcase"></i> Job Details</h3>
+                <div class="job-details">
+                    <div class="job-detail">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Bangalore, India</span>
+                    </div>
+                    <div class="job-detail">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>₹15-25 LPA</span>
+                    </div>
+                    <div class="job-detail">
+                        <i class="fas fa-briefcase"></i>
+                        <span>2-5 years</span>
+                    </div>
+                    <div class="job-detail">
+                        <i class="fas fa-clock"></i>
+                        <span>Full-time</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-file-alt"></i> Job Description</h3>
+                <p>Analyzing complex data sets and providing insights to drive business decisions. The ideal candidate will have strong analytical skills and experience with data visualization tools.</p>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-user-check"></i> Eligibility Criteria</h3>
+                <ul>
+                    <li>Bachelor's degree in Computer Science, Statistics, or related field</li>
+                    <li>2-5 years of experience in data analysis</li>
+                    <li>Proficiency in SQL and Python</li>
+                    <li>Experience with data visualization tools like Tableau or Power BI</li>
+                    <li>Strong analytical and problem-solving skills</li>
+                </ul>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-tools"></i> Required Skills</h3>
+                <div class="job-skills">
+                    <span class="job-skill">Python</span>
+                    <span class="job-skill">SQL</span>
+                    <span class="job-skill">Data Visualization</span>
+                    <span class="job-skill">Statistics</span>
+                    <span class="job-skill">Machine Learning</span>
+                    <span class="job-skill">Excel</span>
+                </div>
+            </div>
+            
+            <div class="job-detail-section">
+                <h3><i class="fas fa-building"></i> About Company</h3>
+                <p>Google is a multinational technology company specializing in Internet-related services and products. We're committed to creating a diverse and inclusive workplace for all employees.</p>
+            </div>
+            
+            <div class="job-detail-actions">
+                <button class="job-detail-btn apply-detail-btn">
+                    <i class="fas fa-paper-plane"></i> Apply Now
+                </button>
+                <button class="job-detail-btn save-detail-btn">
+                    <i class="fas fa-bookmark"></i> Save Job
+                </button>
+                <button class="job-detail-btn upload-cv-detail-btn">
+                    <i class="fas fa-upload"></i> Upload CV
+                </button>
+                <input type="file" id="cvMobileFileInput" accept=".pdf,.doc,.docx" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    const token = localStorage.getItem('authToken');
+    //console.log('token', token)
+    if (!token) {
+        window.location.href = './login.html';
+        return;
+    }
+
+    const API_BASE_URL = 'https://api.manipalhr.com/api';
+    let savedJobs = new Set();
+    let appliedJobs = new Set();
+    let currentJobDetail = null;
+
+    const getAuthHeaders = () => ({ 'Authorization': `Token ${token}`, 'Content-Type': 'application/json' });
+    const getFormDataHeaders = () => ({ 'Authorization': `Token ${token}` });
+
+    const showNotification = (message, type) => {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        notification.style.cssText = `position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 5px; color: white; font-weight: 500; z-index: 1004; transform: translateX(150%); transition: transform 0.3s ease-out; background-color: ${type === 'success' ? '#4caf50' : '#f44336'};`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.style.transform = 'translateX(0)', 100);
+        setTimeout(() => { notification.style.transform = 'translateX(150%)'; setTimeout(() => document.body.removeChild(notification), 300); }, 3000);
+    };
+
+    const domElements = {
+        searchInput: document.getElementById('searchInput'),
+        searchBtn: document.getElementById('searchBtn'),
+        filterBtns: document.querySelectorAll('.filter-btn'),
+        profileName: document.querySelector('.profile-name'),
+        profileTitle: document.querySelector('.profile-title'),
+        profileLocation: document.querySelector('.profile-location'),
+        profileCompletion: document.querySelector('.stat-value'),
+        profileAvatar: document.querySelector('.profile-avatar'),
+        userAvatar: document.querySelector('.user-avatar'),
+        MobileUserAvatar: document.querySelector('.mobile-user-avatar'),
+        miniProfileName: document.querySelector('.mini-profile-name'),
+        miniProfileTitle: document.querySelector('.mini-profile-title'),
+        miniProfileLocation: document.querySelector('.mini-profile-location'),
+        jobDetailOverlay: document.querySelector('.job-detail-overlay'),
+        jobDetailContainer: document.querySelector('.job-detail-container'),
+        mobileJobDetailContainer: document.querySelector('.mobile-job-detail-container'),
+        jobDetailClose: document.querySelector('.job-detail-close'),
+        mobileJobDetailClose: document.querySelector('.mobile-job-detail-close'),
+        cvFileInput: document.getElementById('cvFileInput'),
+        cvDetailFileInput: document.getElementById('cvDetailFileInput'),
+        cvMobileFileInput: document.getElementById('cvMobileFileInput')
+    };
+
+    const renderJobCard = (job) => {
+        const isSaved = savedJobs.has(job.id);
+        const hasApplied = appliedJobs.has(job.id);
+        return `<div class="job-card" data-job-id="${job.id}">
+            <div class="job-header">
+                <div>
+                    <h3 class="job-title">${job.title}</h3>
+                    <div class="job-company">${job.company_name}</div>
+                </div>
+                <div class="job-type">${job.job_type.replace('_', ' ')}</div>
+            </div>
+            <div class="job-details">
+                <div class="job-detail"><i class="fas fa-map-marker-alt"></i><span>${job.location}</span></div>
+                <div class="job-detail"><i class="fas fa-money-bill-wave"></i><span>₹${(job.min_salary/100000).toFixed(1)}-${(job.max_salary/100000).toFixed(1)} LPA</span></div>
+                <div class="job-detail"><i class="fas fa-briefcase"></i><span>${job.min_experience}-${job.max_experience} years</span></div>
+            </div>
+            <p class="job-description">${job.description.substring(0, 150)}...</p>
+            <div class="job-skills">${job.skills_required.split(',').slice(0, 4).map(skill => `<span class="skill-tag">${skill.trim()}</span>`).join('')}</div>
+            <div class="job-actions">
+                <button class="apply-btn" data-job-id="${job.id}" ${hasApplied ? 'disabled' : ''}>${hasApplied ? 'Applied' : 'Apply Now'}</button>
+                <button class="save-job ${isSaved ? 'saved' : ''}" data-job-id="${job.id}"><i class="${isSaved ? 'fas' : 'far'} fa-bookmark"></i></button>
+            </div>
+        </div>`;
+    };
+
+    const renderUserProfile = (profile) => {
+       console.log(profile);
+        const name = `${profile.user.first_name} ${profile.user.last_name}`;
+        domElements.profileName.textContent = name;
+        domElements.profileTitle.textContent = profile.current_designation || 'Candidate';
+        domElements.profileLocation.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${profile.location || 'Location not set'}`;
+        //domElements.profileCompletion.textContent = `${profile.profile_completion || 0}%`;
+<!--        console.log('profile2', domElements.profileAvatar.src)-->
+<!--        console.log('profile-avatar', profile.avatar)-->
+        if(profile.avatar){
+        const urlParts = API_BASE_URL.split('/');
+        const baseUrl = urlParts[0] + '//' + urlParts[2];
+<!--        console.log('baseUrl-avatar', baseUrl)-->
+<!--         console.log('profile2', domElements.profileAvatar.src)-->
+<!--        console.log('baseUrl-avatar', baseUrl)-->
+            //console.log('profile-avatar',profile.avatar)
+            domElements.profileAvatar.src = baseUrl+''+profile.avatar;
+            domElements.userAvatar.src = baseUrl+''+profile.avatar;
+            domElements.MobileUserAvatar.src = baseUrl+''+profile.avatar;
+            document.querySelector('.mini-profile-avatar').src = baseUrl+''+profile.avatar;
+        }
+        domElements.miniProfileName.textContent = name;
+        domElements.miniProfileTitle.textContent = profile.current_designation || 'Candidate';
+        domElements.miniProfileLocation.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${profile.location || 'Location not set'}`;
+    };
+
+    const fetchJobs = async (params = {}) => {
+        try {
+            const queryString = new URLSearchParams(params).toString();
+            console.log('queryString',queryString);
+            const response = await fetch(`${API_BASE_URL}/jobs/?${queryString}`, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Failed to fetch jobs');
+            const data = await response.json();
+            const jobs = Array.isArray(data) ? data : data.results || [];
+            
+            const jobsSection = document.querySelector('.jobs-section');
+            const existingJobCards = jobsSection.querySelectorAll('.job-card');
+            existingJobCards.forEach(card => card.remove());
+            
+            jobs.forEach(job => {
+                if (job.is_saved) savedJobs.add(job.id);
+                if (job.has_applied) appliedJobs.add(job.id);
+                jobsSection.insertAdjacentHTML('beforeend', renderJobCard(job));
+            });
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    };
+
+    const applyForJob = async (jobId) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs/${jobId}/apply/`, { 
+                method: 'POST', 
+                headers: getAuthHeaders() 
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Application failed');
+            showNotification('Application submitted successfully!', 'success');
+            appliedJobs.add(jobId);
+            fetchJobs();
+            if(currentJobDetail && currentJobDetail.id === jobId) {
+                const applyBtn = document.querySelector('.apply-detail-btn');
+                applyBtn.innerHTML = '<i class="fas fa-check"></i> Applied';
+                applyBtn.disabled = true;
+            }
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    };
+
+   const toggleSaveJob = async (jobId) => {
+    const isSaved = savedJobs.has(jobId);
+    try {
+        // Use POST method for both save and unsave operations
+        // Include the action in the request body
+        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}/save/`, { 
+            method: 'POST', 
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                action: isSaved ? 'unsave' : 'save'
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Action failed');
+        showNotification(data.message, 'success');
+        if (isSaved) {
+            savedJobs.delete(jobId);
+            if(currentJobDetail && currentJobDetail.id === jobId) {
+                const saveBtn = document.querySelector('.save-detail-btn');
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i> Save Job';
+                saveBtn.classList.remove('saved');
+            }
+        } else {
+            savedJobs.add(jobId);
+            if(currentJobDetail && currentJobDetail.id === jobId) {
+                const saveBtn = document.querySelector('.save-detail-btn');
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i> Saved';
+                saveBtn.classList.add('saved');
+            }
+        }
+        fetchJobs();
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+};
+
+    const uploadCV = async (file) => {
+        if (!file) {
+            showNotification('Please select a file first.', 'error');
+            return;
+        }
+        const formData = new FormData();
+        formData.append('resume', file);
+        try {
+            const response = await fetch(`${API_BASE_URL}/profile/upload-cv/`, { 
+                method: 'POST', 
+                headers: getFormDataHeaders(), 
+                body: formData 
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Upload failed');
+            showNotification(data.message || 'CV uploaded successfully!', 'success');
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    };
+
+    const fetchUserProfile = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/profile/`, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Failed to fetch profile');
+            const profile = await response.json();
+            renderUserProfile(profile);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    };
+
+    const openJobDetail = async (jobId) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs/${jobId}/`, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Failed to fetch job details');
+            const job = await response.json();
+            currentJobDetail = job;
+
+            document.querySelector('.company-details h2').textContent = job.title;
+            document.querySelector('.company-details p').textContent = job.company_name;
+            
+            const jobDetailsHtml = `
+                <div class="job-detail"><i class="fas fa-map-marker-alt"></i><span>${job.location}</span></div>
+                <div class="job-detail"><i class="fas fa-money-bill-wave"></i><span>₹${(job.min_salary/100000).toFixed(1)}-${(job.max_salary/100000).toFixed(1)} LPA</span></div>
+                <div class="job-detail"><i class="fas fa-briefcase"></i><span>${job.min_experience}-${job.max_experience} years</span></div>
+                <div class="job-detail"><i class="fas fa-clock"></i><span>${job.job_type.replace('_', ' ')}</span></div>
+            `;
+            document.querySelector('.job-detail-content .job-detail-section:nth-child(1) .job-details').innerHTML = jobDetailsHtml;
+            document.querySelector('.job-detail-content .job-detail-section:nth-child(2) p').textContent = job.description;
+            
+            const requirementsList = job.requirements ? job.requirements.split('\n').map(req => `<li>${req.trim()}</li>`).join('') : '<li>No specific requirements listed.</li>';
+            document.querySelector('.job-detail-content .job-detail-section:nth-child(3) ul').innerHTML = requirementsList;
+
+            const skillsHtml = job.skills_required ? job.skills_required.split(',').map(skill => `<span class="job-skill">${skill.trim()}</span>`).join('') : '';
+            document.querySelector('.job-detail-content .job-detail-section:nth-child(4) .job-skills').innerHTML = skillsHtml;
+            document.querySelector('.job-detail-content .job-detail-section:nth-child(5) p').textContent = job.benefits || 'Standard company benefits.';
+
+            const applyBtn = document.querySelector('.apply-detail-btn');
+            const saveBtn = document.querySelector('.save-detail-btn');
+
+            if (appliedJobs.has(job.id)) {
+                applyBtn.innerHTML = '<i class="fas fa-check"></i> Applied';
+                applyBtn.disabled = true;
+            } else {
+                applyBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Apply Now';
+                applyBtn.disabled = false;
+            }
+
+            if (savedJobs.has(job.id)) {
+                saveBtn.innerHTML = '<i class="fas fa-bookmark"></i> Saved';
+                saveBtn.classList.add('saved');
+            } else {
+                saveBtn.innerHTML = '<i class="far fa-bookmark"></i> Save Job';
+                saveBtn.classList.remove('saved');
+            }
+
+            if (window.innerWidth <= 768) {
+                domElements.mobileJobDetailContainer.classList.add('active');
+            } else {
+                domElements.jobDetailOverlay.classList.add('active');
+                domElements.jobDetailContainer.classList.add('active');
+            }
+            document.body.style.overflow = 'hidden';
+
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    };
+
+    const closeJobDetail = () => {
+        domElements.jobDetailOverlay.classList.remove('active');
+        domElements.jobDetailContainer.classList.remove('active');
+        domElements.mobileJobDetailContainer.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        currentJobDetail = null;
+    };
+
+    const setupEventListeners = () => {
+        // Fixed the document click event listener to properly handle job detail buttons
+        document.addEventListener('click', (e) => {
+            // Handle job card clicks
+            const jobCard = e.target.closest('.job-card');
+            if (jobCard) {
+                const jobId = jobCard.dataset.jobId;
+                if (e.target.closest('.save-job')) {
+                    e.stopPropagation();
+                    toggleSaveJob(jobId);
+                } else if (e.target.closest('.apply-btn')) {
+                    e.stopPropagation();
+                    applyForJob(jobId);
+                } else {
+                    openJobDetail(jobId);
+                }
+                return;
+            }
+
+            // Handle job detail panel buttons
+            if (e.target.closest('.apply-detail-btn')) {
+                e.preventDefault();
+                if(currentJobDetail && !appliedJobs.has(currentJobDetail.id)) {
+                    applyForJob(currentJobDetail.id);
+                }
+            }
+            
+            if (e.target.closest('.save-detail-btn')) {
+                e.preventDefault();
+                if(currentJobDetail) {
+                    toggleSaveJob(currentJobDetail.id);
+                }
+            }
+            
+            if (e.target.closest('.upload-cv-detail-btn')) {
+                e.preventDefault();
+                const fileInput = e.target.nextElementSibling;
+                if (fileInput && fileInput.type === 'file') {
+                    fileInput.click();
+                }
+            }
+        });
+
+        domElements.searchBtn.addEventListener('click', () => {
+            const searchTerm = domElements.searchInput.value.trim();
+            console.log('Searching for:', searchTerm);
+            fetchJobs({ search: searchTerm });
+        });
+
+        domElements.searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                domElements.searchBtn.click();
+            }
+        });
+
+        // Fixed filter buttons event listener
+        domElements.filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                domElements.filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Get the correct filter type from the data-type attribute
+                const filterType = btn.dataset.type;
+
+                // --- SAFETY CHECK ---
+                // If filterType is 'all' or undefined/empty, fetch all jobs.
+                // Otherwise, use the type.
+                const params = (filterType && filterType !== 'all') ? { job_type: filterType } : {};
+
+                fetchJobs(params);
+            });
+        });
+
+        [domElements.cvFileInput, domElements.cvDetailFileInput, domElements.cvMobileFileInput].forEach(input => {
+            if (input) {
+                input.addEventListener('change', (e) => {
+                    if (e.target.files[0]) uploadCV(e.target.files[0]);
+                });
+            }
+        });
+
+        // Fixed close button event listeners
+        domElements.jobDetailClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeJobDetail();
+        });
+        
+        domElements.jobDetailOverlay.addEventListener('click', (e) => {
+            if (e.target === domElements.jobDetailOverlay) {
+                closeJobDetail();
+            }
+        });
+        
+        domElements.mobileJobDetailClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeJobDetail();
+        });
+    };
+
+    (function() {
+        const hamburger = document.querySelector('.hamburger');
+        const mobileNav = document.querySelector('.mobile-nav');
+        const mobileNavOverlay = document.querySelector('.mobile-nav-overlay');
+        const mobileNavClose = document.querySelector('.mobile-nav-close');
+        const miniProfileOverlay = document.querySelector('.mini-profile-overlay');
+        const miniProfile = document.querySelector('.mini-profile');
+        const miniProfileClose = document.querySelector('.mini-profile-close');
+        const mobileUserAvatar = document.querySelector('.mobile-user-avatar');
+
+        hamburger.addEventListener('click', () => { mobileNav.classList.add('active'); mobileNavOverlay.classList.add('active'); document.body.style.overflow = 'hidden'; });
+        const closeMobileNav = () => { mobileNav.classList.remove('active'); mobileNavOverlay.classList.remove('active'); document.body.style.overflow = 'auto'; };
+        mobileNavClose.addEventListener('click', closeMobileNav);
+        mobileNavOverlay.addEventListener('click', closeMobileNav);
+        mobileUserAvatar.addEventListener('click', (e) => { e.stopPropagation(); miniProfileOverlay.classList.add('active'); miniProfile.classList.add('active'); });
+        const closeMiniProfile = () => { miniProfileOverlay.classList.remove('active'); miniProfile.classList.remove('active'); };
+        miniProfileClose.addEventListener('click', closeMiniProfile);
+        miniProfileOverlay.addEventListener('click', closeMiniProfile);
+        document.querySelectorAll('.mobile-nav-menu a').forEach(link => { link.addEventListener('click', closeMobileNav); });
+        document.querySelectorAll('.bottom-nav-item').forEach(item => { item.addEventListener('click', function() { document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active')); this.classList.add('active'); }); });
+        document.querySelector('.notification-bell').addEventListener('click', () => { document.querySelector('.notification-badge').style.display = 'none'; showNotification('You have 3 new notifications', 'success'); });
+        document.querySelectorAll('.trending-tag').forEach(tag => { tag.addEventListener('click', () => { domElements.searchInput.value = tag.textContent; domElements.searchInput.focus(); }); });
+       // document.querySelector('.refresh-btn').addEventListener('click', function() { this.style.animation = 'spin 1s'; setTimeout(() => { this.style.animation = ''; showNotification('Trending topics refreshed!', 'success'); }, 1000); });
+        const style = document.createElement('style'); style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }'; document.head.appendChild(style);
+    })();
+
+    fetchJobs();
+    fetchUserProfile();
+    setupEventListeners();
+});
+</script>
+
+
+ <script>
+     // script for modals, popups
+document.addEventListener('DOMContentLoaded', function() {
+        // Mini profile
+            const desktopUserAvatar = document.getElementById('desktopUserAvatar');
+            const mobileUserAvatar = document.getElementById('mobileUserAvatar');
+            const miniProfileOverlay = document.getElementById('miniProfileOverlay');
+            const miniProfile = document.getElementById('miniProfile');
+            const miniProfileClose = document.getElementById('miniProfileClose');
+            //miniProfile.style.display = 'none';
+            desktopUserAvatar.addEventListener('click', (e) => {
+                e.stopPropagation();
+                miniProfileOverlay.classList.add('active');
+                miniProfile.classList.add('active');
+
+                miniProfile.style.display = 'block';
+                //miniProfile.classList.toggle('hidden');
+            });
+
+            mobileUserAvatar.addEventListener('click', (e) => {
+                e.stopPropagation();
+                miniProfileOverlay.classList.add('active');
+                miniProfile.classList.add('active');
+            });
+
+            const closeMiniProfile = () => {
+                miniProfileOverlay.classList.remove('active');
+                miniProfile.classList.remove('active');
+                miniProfile.style.display = 'none';
+            };
+
+            miniProfileClose.addEventListener('click', closeMiniProfile);
+            miniProfileOverlay.addEventListener('click', closeMiniProfile);
+
+        // get cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.startsWith(name + "=")) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+
+
+        //logout function
+       const API_BASE_URL = 'https://api.manipalhr.com/api';
+       window.logoutUser = async function () {
+            const token = localStorage.getItem("authToken");
+            console.log('authToken1', token);
+            const response = await fetch(`${API_BASE_URL}/logout/`, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Token " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("Logged out successfully");
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                sessionStorage.clear();
+                localStorage.clear();
+                window.location.href = "./login.html";
+            } else {
+                alert(data.error || "Logout failed");
+            }
+        }
+
+});
+
+</script>
+
+</body>
+</html>
